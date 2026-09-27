@@ -6,7 +6,7 @@
  *         dengan multimeter.
  *
  * Yang harus terlihat di Serial Monitor (115200 baud):
- *   1. Scan I2C menemukan alamat 0x40
+ *   1. Scan I2C menemukan alamat 0x44
  *   2. Manufacturer ID = 0x5449  dan  Die ID = 0x2260
  *   3. Tanpa kipas: arus ~0 mA
  *      Dengan kipas 12 V: arus ~100-200 mA (cocokkan dengan multimeter)
