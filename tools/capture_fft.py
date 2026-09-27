@@ -168,6 +168,8 @@ def print_report(name, meta, r):
           + ("   <-- PERLU DIPERBAIKI" if missed else "   OK"))
     if "vshct_us" in meta:
         print(f" Laju nominal (VSHCT)   : {1e6/float(meta['vshct_us']):.1f} SPS")
+    if "vbus_V" in meta:
+        print(f" Tegangan catu (bus)    : {float(meta['vbus_V']):.3f} V")
     print(f" Arus rata-rata (DC)    : {r['dc']:.2f} mA")
     print(f" Riak RMS               : {r['ripple_rms']:.3f} mA"
           f"  ({100*r['ripple_rms']/max(r['dc'],1e-9):.1f}% dari DC)")

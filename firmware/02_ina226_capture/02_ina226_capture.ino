@@ -48,6 +48,7 @@
 
 #define REG_CONFIG  0x00
 #define REG_SHUNT   0x01
+#define REG_BUS     0x02
 #define REG_MASK    0x06
 
 static const uint16_t VSHCT_US[] = {140, 204, 332, 588, 1100, 2116, 4156, 8244};
@@ -114,6 +115,14 @@ int waitAndRead(int16_t &val, uint32_t &t) {
 }
 
 void capture() {
+  // Tegangan catu dicatat tiap rekaman: RPM kipas ikut tegangan, jadi ini
+  // menjelaskan pergeseran frekuensi antar sesi. Mode bus+shunt, AVG=16, 1,1 ms.
+  writeReg(REG_CONFIG, 0x4527);
+  delay(50);                                         // > 16 x 2 x 1,1 ms
+  uint16_t rawBus = 0;
+  readReg(REG_BUS, rawBus);
+  float vbus = rawBus * 0.00125f;                    // LSB 1,25 mV
+
   // Tulis konfigurasi -> konversi dimulai ulang, flag terhapus
   writeReg(REG_CONFIG, captureConfig());
 #if USE_ALERT_PIN
@@ -163,6 +172,7 @@ void capture() {
   Serial.printf("#errors=%u\n", (unsigned)errCount);
   Serial.printf("#missed=%u\n", (unsigned)missed);
   Serial.printf("#mean_mA=%.3f\n", meanRaw * 0.025f);   // 2.5 uV / 0.1 ohm = 25 uA per LSB
+  Serial.printf("#vbus_V=%.3f\n", vbus);
   Serial.println("t_us,raw");
   for (int i = 0; i < N_SAMPLES; i++) {
     Serial.printf("%u,%d\n", (unsigned)(timeBuf[i] - t0), (int)sampleBuf[i]);
