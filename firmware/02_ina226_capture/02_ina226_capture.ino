@@ -1,5 +1,5 @@
-/*
- * 02_ina226_capture.ino  —  LANGKAH 4
+﻿/*
+ * 02_ina226_capture.ino  â€”  LANGKAH 4
  * --------------------------------------------------------------
  * Merekam N sampel arus secepat mungkin ke RAM (burst), BARU
  * kemudian mengirimnya ke PC. Dengan begitu kecepatan Serial
@@ -32,7 +32,9 @@
 // Kecepatan I2C:
 //   400000  = batas RESMI INA226 (mulai dari sini)
 //   1000000 = di luar spesifikasi resmi, sering tetap jalan -> uji coba
-#define I2C_HZ         400000
+// Terukur 2026-09-28 (VSHCT 332 us): 400 kHz -> 454 us/sampel (ESP32 tidak
+// sempat); 1 MHz -> 3030 SPS, 0 terlewat, 0 error. Jadi pakai 1 MHz.
+#define I2C_HZ         1000000
 
 // Waktu konversi shunt (VSHCT)  ->  laju cuplik
 //   0 = 140 us -> 7.14 kSPS   (butuh I2C sangat cepat)
@@ -90,8 +92,12 @@ int waitAndRead(int16_t &val, uint32_t &t) {
   }
   t = micros();
   uint16_t raw, dummy;
-  if (!readReg(REG_SHUNT, raw)) return 2;
+  // Hapus flag DULU, baru baca shunt. Kalau urutannya dibalik, 2 transaksi I2C
+  // bisa lebih lama dari 1 konversi -> flag konversi berikutnya ikut terhapus
+  // -> setiap konversi kedua terlewat (terukur: 597 us/sampel, bukan 332).
+  // Register shunt tetap memegang hasil ini sampai konversi berikutnya selesai.
   if (!readReg(REG_MASK, dummy)) return 2;          // baca 0x06 = hapus flag
+  if (!readReg(REG_SHUNT, raw)) return 2;
 #else
   uint16_t mask;
   while (true) {                                     // polling bit CVRF (bit 3)

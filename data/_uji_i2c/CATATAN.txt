@@ -1,0 +1,4 @@
+﻿Rekaman uji laju cuplik 2026-09-28 — TIDAK VALID untuk dataset.
+- 003612: I2C 400 kHz, baca shunt lalu mask -> tiap konversi kedua terlewat (597 us/sampel, 1675 SPS, aliasing berat).
+- 003805: I2C 400 kHz, baca mask lalu shunt -> ESP32 lebih lambat dari konversi (454 us/sampel, 2203 SPS, pewaktuan ditentukan ESP32 bukan INA226).
+Rekaman valid pertama: data/sehat_u01_pwm100_20260928-003938 (I2C 1 MHz, 3030 SPS, 0 terlewat).

@@ -161,8 +161,13 @@ def print_report(name, meta, r):
     print(f" Jumlah sampel          : {len(r['i_mA'])}")
     print(f" Laju cuplik efektif    : {r['fs']:.1f} SPS  (Nyquist {r['fs']/2:.0f} Hz)")
     print(f" Resolusi frekuensi     : {r['df']:.2f} Hz")
-    print(f" Konversi terlewat      : {r['gaps']}"
-          + ("   <-- PERLU DIPERBAIKI" if r["gaps"] else "   OK"))
+    # Pakai hitungan ESP32 (dibanding VSHCT nominal); celah vs median saja
+    # buta bila SETIAP sampel terlewat secara teratur.
+    missed = int(meta.get("missed", r["gaps"]))
+    print(f" Konversi terlewat      : {missed}"
+          + ("   <-- PERLU DIPERBAIKI" if missed else "   OK"))
+    if "vshct_us" in meta:
+        print(f" Laju nominal (VSHCT)   : {1e6/float(meta['vshct_us']):.1f} SPS")
     print(f" Arus rata-rata (DC)    : {r['dc']:.2f} mA")
     print(f" Riak RMS               : {r['ripple_rms']:.3f} mA"
           f"  ({100*r['ripple_rms']/max(r['dc'],1e-9):.1f}% dari DC)")
