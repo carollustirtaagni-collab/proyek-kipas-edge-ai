@@ -201,6 +201,14 @@ python tools/capture_fft.py --file data/<nama>.csv --noshow
 - [x] **28-09-2026: Identifikasi kipas.** FAN5010DC, 12 V / 0,09 A, 2 kabel, 7 bilah. Arus terukur 73 mA = 81 % rating.
 - [x] **28-09-2026: Kapasitor 1000 µF pada catu daya** (saran dosen pembimbing). Data menunjukkan posisinya sebelum *shunt*: riak RMS tetap 4,29 → 4,30 mA. Lantai derau 44 → 40 µA (belum dapat dipastikan bermakna). Sejak sesi s2, setiap rekaman mencatat tegangan bus (`#vbus_V`).
 - [x] **29-09-2026: U01 sesi s3 (dudukan terstandar, 2 rekaman berurutan).** 331,1 / 330,3 Hz; 72,91 / 72,84 mA; riak RMS 4,40 / 4,44 mA; 12,722 V. Pengulangan dalam satu sesi konsisten. Fundamental U01 cenderung naik sepanjang waktu nyala (321 → 327 → 331 Hz). Dugaan: pemanasan bantalan (belum diverifikasi). Perlu diuji apakah waktu pemanasan standar diperlukan sebelum merekam.
+- [x] **29-09-2026: Uji pemanasan U02** (rekam pada t = 30–600 s setelah dinyalakan, 12,722 V):
+
+  | t (s) | 30 | 60 | 120 | 180 | 300 | 420 | 600 |
+  |---|---|---|---|---|---|---|---|
+  | f₁ (Hz) | 304,4 | 310,0 | 316,3 | 312,9 | 317,4 | 320,0 | 306,7 |
+  | I (mA) | 75,74 | 75,29 | 74,79 | 74,85 | 74,61 | 74,56 | 75,11 |
+
+  Temuan: (1) kecepatan naik ~4 % dalam 2 menit pertama, lalu berfluktuasi 313–320 Hz; (2) terdapat penurunan sesaat (t = 180 s dan 600 s) yang **selalu disertai kenaikan arus**, menandakan perubahan beban mekanis/aerodinamis; (3) dalam satu rekaman 2,7 s, kecepatan dapat bergeser hingga 4 Hz. Penyebab penurunan sesaat belum diketahui (kandidat: aliran udara ruangan, gesekan bantalan *stick-slip*). Implikasi: kecepatan kipas sehat bervariasi ±3 %, sehingga ciri berbasis orde (*order tracking*) diperlukan. Penurunan kecepatan + kenaikan arus menyerupai tanda Aliran Terhambat, sehingga **lingkungan aliran udara harus dikendalikan** saat merekam. Usulan sementara: pemanasan ≥ 3 menit sebelum merekam.
 - [ ] **Pergeseran kecepatan U01 sesi s2.** Rekaman 01:01 menunjukkan 309,6 Hz / 74,3 mA, sedangkan satu menit kemudian 321,8 Hz / 73,2 mA pada 12,716 V. Putaran lebih lambat disertai arus lebih tinggi mengindikasikan beban mekanis sesaat (dugaan: aliran udara terhalang oleh posisi kipas, belum dikonfirmasi). Tindak lanjut: dudukan kipas yang terstandar.
 - [ ] **Penetapan orde 1× (RPM).** Hipotesis dari spektrum U01: (a) 321 Hz = 4 komutasi/putaran → **4.816 RPM** (80,3 Hz; orde bilah 7× di 562 Hz hanya +11,6 dB), paling masuk akal untuk kipas 5010; (b) 2 komutasi/putaran → 9.633 RPM (kecil kemungkinan); (c) 6 komutasi/putaran → 3.211 RPM (tidak ada orde 2×). Perlu verifikasi stroboskop atau uji massa.
 - [ ] Uji bilah patah (validasi *pipeline* sekaligus konfirmasi orde 1×).
