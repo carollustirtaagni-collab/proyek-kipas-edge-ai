@@ -187,7 +187,7 @@ python tools/capture_fft.py --file data/<nama>.csv --noshow
 
 ## Progres dan Log Eksperimen
 
-**Langkah berikutnya:** rekam U01–U04 kondisi Sehat pada dudukan terstandar, lalu U05–U10. Pengukuran RPM dengan stroboskop masih tertunda.
+**Langkah berikutnya:** (1) uji pembuktian pengaruh kipas angin ruangan: U02, 5 rekaman berurutan dengan kipas angin mati; (2) bila terbukti, tetapkan protokol rekam (tanpa aliran udara ruangan, pemanasan ≥ 3 menit) dan rekam ulang U01–U04 kondisi Sehat, lalu U05–U10. Pengukuran RPM dengan stroboskop masih tertunda.
 
 - [x] Perakitan perangkat keras (ESP32-S3 + INA226 + kipas 12 V).
 - [x] Scan I²C: INA226 terdeteksi di **0x44**.
@@ -209,6 +209,7 @@ python tools/capture_fft.py --file data/<nama>.csv --noshow
   | I (mA) | 75,74 | 75,29 | 74,79 | 74,85 | 74,61 | 74,56 | 75,11 |
 
   Temuan: (1) kecepatan naik ~4 % dalam 2 menit pertama, lalu berfluktuasi 313–320 Hz; (2) terdapat penurunan sesaat (t = 180 s dan 600 s) yang **selalu disertai kenaikan arus**, menandakan perubahan beban mekanis/aerodinamis; (3) dalam satu rekaman 2,7 s, kecepatan dapat bergeser hingga 4 Hz. Penyebab penurunan sesaat belum diketahui (kandidat: aliran udara ruangan, gesekan bantalan *stick-slip*). Implikasi: kecepatan kipas sehat bervariasi ±3 %, sehingga ciri berbasis orde (*order tracking*) diperlukan. Penurunan kecepatan + kenaikan arus menyerupai tanda Aliran Terhambat, sehingga **lingkungan aliran udara harus dikendalikan** saat merekam. Usulan sementara: pemanasan ≥ 3 menit sebelum merekam.
+  - Selama uji ini (dan rekaman U01) terdapat **kipas angin ruangan berayun** di dekat meja uji, yang diduga kuat menyebabkan penurunan kecepatan sesaat. Rekaman U01 s1–s3 dan U02 s3 ditandai **berpotensi terpengaruh angin**. Uji pembuktian (U02, 5 rekaman berurutan dengan kipas angin mati) belum dilakukan.
 - [ ] **Pergeseran kecepatan U01 sesi s2.** Rekaman 01:01 menunjukkan 309,6 Hz / 74,3 mA, sedangkan satu menit kemudian 321,8 Hz / 73,2 mA pada 12,716 V. Putaran lebih lambat disertai arus lebih tinggi mengindikasikan beban mekanis sesaat (dugaan: aliran udara terhalang oleh posisi kipas, belum dikonfirmasi). Tindak lanjut: dudukan kipas yang terstandar.
 - [ ] **Penetapan orde 1× (RPM).** Hipotesis dari spektrum U01: (a) 321 Hz = 4 komutasi/putaran → **4.816 RPM** (80,3 Hz; orde bilah 7× di 562 Hz hanya +11,6 dB), paling masuk akal untuk kipas 5010; (b) 2 komutasi/putaran → 9.633 RPM (kecil kemungkinan); (c) 6 komutasi/putaran → 3.211 RPM (tidak ada orde 2×). Perlu verifikasi stroboskop atau uji massa.
 - [ ] Uji bilah patah (validasi *pipeline* sekaligus konfirmasi orde 1×).
