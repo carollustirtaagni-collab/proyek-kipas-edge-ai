@@ -193,7 +193,7 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
 
 ## Progres dan Log Eksperimen
 
-**Langkah berikutnya:** rekam beruntun U04 (sudah diinreyen) kondisi Sehat (±150 rekaman per unit, kondisi ruangan dicatat di metadata), lalu U05–U10. Pengukuran RPM dengan stroboskop masih tertunda.
+**Langkah berikutnya:** (1) rekam U05–U10 kondisi Sehat (kipas baru: inreyen 30 menit dulu); (2) rangkaian PWM untuk sapuan 40–100 % — data Sehat pada berbagai *duty* harus terkumpul **sebelum** perlakuan permanen (massa) pada unit jalur A. Pengukuran RPM dengan stroboskop masih tertunda.
 
 - [x] Perakitan perangkat keras (ESP32-S3 + INA226 + kipas 12 V).
 - [x] Scan I²C: INA226 terdeteksi di **0x44**.
@@ -248,6 +248,12 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
 
   Rasio riak/DC konsisten antar unit (5,9–6,0 %), sedangkan kecepatan dan arus rata-rata berbeda nyata antar unit. U03 (baru) jauh lebih stabil dibanding U01/U02; penyebabnya belum diketahui.
 - [x] **05-10-2026: Data mentah dipindahkan ke Google Drive** (316 CSV, 33,7 MB; jumlah file terverifikasi sama).
+- [x] **06-10-2026: U04 sesi s4, 150 rekaman** (setelah inreyen 30 menit terpisah tanpa INA226). Setelah pemanasan: f₁ 326,9 ± 2,0 Hz, I 74,82 ± 0,07 mA, riak/DC 5,92 %.
+- [~] **06-10-2026: Gerbang kelayakan langkah 1 (4 dari 6–8 unit Sehat)** — `tools/overlay_orde.py`, grafik `data/gerbang_spektrum_orde.png` dan `data/gerbang_f1_vs_arus.png`; 136–150 rekaman per unit setelah pemanasan.
+  - Spektrum yang dinormalisasi ke orde f₁ sangat serupa antar unit pada orde bulat (1, 2, 3, 4 × f₁).
+  - Terdapat puncak di **kelipatan ¼ f₁** (0,5; 0,75; 1,25; 1,75; 2,25; 2,75). Ini mendukung hipotesis (a): f₁ = 4 × frekuensi putaran, sehingga **putaran ≈ f₁/4 ≈ 78–83 Hz (≈ 4.700–5.000 RPM)**. Belum dikonfirmasi stroboskop/uji massa.
+  - Amplitudo di orde ¼ f₁ (kandidat **1× putaran**, tanda tangan Tidak Seimbang): 0,077 / 0,076 / 0,090 / 0,085 mA (U01–U04), σ antar-unit **0,007 mA**, σ dalam-unit ≈ 0,02 mA, lantai derau ≈ 0,04 mA. Garis dasar yang rendah dan seragam ini menjanjikan untuk mendeteksi massa tambahan.
+  - Sebaliknya, orde ½ f₁ (0,21–0,98 mA) dan 1½ f₁ (0,22–0,80 mA) sangat berbeda antar unit, begitu pula arus rata-rata (σ antar-unit 2,33 mA vs σ dalam-unit 0,17 mA; keempat unit terpisah sempurna pada sumbu arus). Ciri-ciri ini berpotensi menjadi **sidik jari unit**, sehingga harus diwaspadai dalam pemilihan ciri dan diuji melalui LOUO.
 - [ ] **Pergeseran kecepatan U01 sesi s2.** Rekaman 01:01 menunjukkan 309,6 Hz / 74,3 mA, sedangkan satu menit kemudian 321,8 Hz / 73,2 mA pada 12,716 V. Putaran lebih lambat disertai arus lebih tinggi mengindikasikan beban mekanis sesaat (dugaan: aliran udara terhalang oleh posisi kipas, belum dikonfirmasi). Tindak lanjut: dudukan kipas yang terstandar.
 - [ ] **Penetapan orde 1× (RPM).** Hipotesis dari spektrum U01: (a) 321 Hz = 4 komutasi/putaran → **4.816 RPM** (80,3 Hz; orde bilah 7× di 562 Hz hanya +11,6 dB), paling masuk akal untuk kipas 5010; (b) 2 komutasi/putaran → 9.633 RPM (kecil kemungkinan); (c) 6 komutasi/putaran → 3.211 RPM (tidak ada orde 2×). Perlu verifikasi stroboskop atau uji massa.
 - [ ] Uji bilah patah (validasi *pipeline* sekaligus konfirmasi orde 1×).
