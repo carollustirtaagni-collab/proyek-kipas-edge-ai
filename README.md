@@ -124,7 +124,8 @@ firmware/01_ina226_cek/      Verifikasi ID chip + pembacaan arus lambat (AVG=16,
 firmware/02_ina226_capture/  Akuisisi burst 8192 sampel via ALERT, keluaran CSV (921600 baud, perintah 'c')
 tools/capture_fft.py         Rekam dari serial → CSV di data/ → plot domain waktu + FFT; --compare untuk overlay
 tools/serial_log.py          Pembacaan serial selama N detik (non-interaktif)
-docs/                        Proposal Rev. 2, ringkasan keputusan terdahulu, foto komponen
+docs/                        Proposal Rev. 2, ringkasan keputusan terdahulu, laporan analisis, foto komponen
+tools/overlay_orde.py        Overlay spektrum orde antar unit + tabel sebaran ciri (gerbang kelayakan)
 data/                        Rekaman CSV + grafik PNG
 ```
 
@@ -249,7 +250,7 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
   Rasio riak/DC konsisten antar unit (5,9–6,0 %), sedangkan kecepatan dan arus rata-rata berbeda nyata antar unit. U03 (baru) jauh lebih stabil dibanding U01/U02; penyebabnya belum diketahui.
 - [x] **05-10-2026: Data mentah dipindahkan ke Google Drive** (316 CSV, 33,7 MB; jumlah file terverifikasi sama).
 - [x] **06-10-2026: U04 sesi s4, 150 rekaman** (setelah inreyen 30 menit terpisah tanpa INA226). Setelah pemanasan: f₁ 326,9 ± 2,0 Hz, I 74,82 ± 0,07 mA, riak/DC 5,92 %.
-- [~] **06-10-2026: Gerbang kelayakan langkah 1 (4 dari 6–8 unit Sehat)** — `tools/overlay_orde.py`, grafik `data/gerbang_spektrum_orde.png` dan `data/gerbang_f1_vs_arus.png`; 136–150 rekaman per unit setelah pemanasan.
+- [~] **06-10-2026: Gerbang kelayakan langkah 1 (4 dari 6–8 unit Sehat)** — laporan lengkap: [`docs/analisis-gerbang-kelayakan-1.md`](docs/analisis-gerbang-kelayakan-1.md); skrip `tools/overlay_orde.py`, grafik `data/gerbang_spektrum_orde.png` dan `data/gerbang_f1_vs_arus.png`; 136–150 rekaman per unit setelah pemanasan.
   - Spektrum yang dinormalisasi ke orde f₁ sangat serupa antar unit pada orde bulat (1, 2, 3, 4 × f₁).
   - Terdapat puncak di **kelipatan ¼ f₁** (0,5; 0,75; 1,25; 1,75; 2,25; 2,75). Ini mendukung hipotesis (a): f₁ = 4 × frekuensi putaran, sehingga **putaran ≈ f₁/4 ≈ 78–83 Hz (≈ 4.700–5.000 RPM)**. Belum dikonfirmasi stroboskop/uji massa.
   - Amplitudo di orde ¼ f₁ (kandidat **1× putaran**, tanda tangan Tidak Seimbang): 0,077 / 0,076 / 0,090 / 0,085 mA (U01–U04), σ antar-unit **0,007 mA**, σ dalam-unit ≈ 0,02 mA, lantai derau ≈ 0,04 mA. Garis dasar yang rendah dan seragam ini menjanjikan untuk mendeteksi massa tambahan.
