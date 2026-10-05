@@ -35,15 +35,26 @@ LSB_SHUNT_V = 2.5e-6  # 2.5 uV per LSB (INA226)
 # ------------------------------------------------------------------
 # Akuisisi
 # ------------------------------------------------------------------
-def capture_from_serial(port, baud, timeout_s=60):
+def open_port(port, baud):
     try:
         import serial
     except ImportError:
         sys.exit("pyserial belum terpasang:  pip install pyserial")
-
     print(f"Membuka {port} @ {baud} ...")
     ser = serial.Serial(port, baud, timeout=1)
     time.sleep(2.5)                    # ESP32 bisa reset saat port dibuka
+    return ser
+
+
+def capture_from_serial(port, baud, timeout_s=60):
+    ser = open_port(port, baud)
+    try:
+        return capture_once(ser, timeout_s)
+    finally:
+        ser.close()
+
+
+def capture_once(ser, timeout_s=60):
     ser.reset_input_buffer()
     ser.write(b"c")
     print("Merekam ... (jangan sentuh kipas/kabel)")
@@ -55,7 +66,6 @@ def capture_from_serial(port, baud, timeout_s=60):
             continue
         line = raw.decode(errors="ignore").strip()
         if line.startswith("#ERROR"):
-            ser.close()
             sys.exit("ESP32 melapor: " + line)
         if line == "#BEGIN":
             started = True
@@ -64,7 +74,6 @@ def capture_from_serial(port, baud, timeout_s=60):
             break
         if started:
             lines.append(line)
-    ser.close()
     if not lines:
         sys.exit("Tidak menerima data. Cek port, baud (921600), dan sketch 02 sudah ter-upload.")
     return lines
@@ -239,10 +248,17 @@ def main():
     ap.add_argument("--rshunt", type=float, default=0.1)
     ap.add_argument("--outdir", default="data")
     ap.add_argument("--noshow", action="store_true", help="jangan buka jendela plot")
+    ap.add_argument("--count", type=int, default=1,
+                    help="rekam N kali beruntun (port dibuka sekali, tanpa PNG); 0 = sampai dihentikan")
+    ap.add_argument("--note", default="", help="catatan kondisi, disimpan di metadata CSV")
     args = ap.parse_args()
 
     if args.noshow:
         plt.show = lambda *a, **k: None
+
+    if args.port and args.count != 1:
+        record_batch(args)
+        return
 
     if args.compare:
         results = []
@@ -263,6 +279,8 @@ def main():
     elif args.port:
         lines = capture_from_serial(args.port, args.baud)
         meta, t, raw = parse_lines(lines)
+        if args.note:
+            meta["catatan"] = args.note
         stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         name = f"{args.label}_{stamp}"
         csv_path = os.path.join(args.outdir, name + ".csv")
@@ -277,6 +295,33 @@ def main():
     r = analyze(t, raw, args.rshunt)
     print_report(name, meta, r)
     plot_single(name, r, png)
+
+
+def record_batch(args):
+    """Rekam beruntun: satu CSV per rekaman, ringkasan satu baris, tanpa PNG."""
+    ser = open_port(args.port, args.baud)
+    t0 = time.time()
+    k = 0
+    try:
+        while args.count == 0 or k < args.count:
+            meta, t, raw = parse_lines(capture_once(ser))
+            meta["batch_t_s"] = f"{time.time() - t0:.1f}"   # detik sejak batch mulai
+            if args.note:
+                meta["catatan"] = args.note
+            stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            path = os.path.join(args.outdir, f"{args.label}_{stamp}.csv")
+            save_csv(path, meta, t, raw)
+            r = analyze(t, raw, args.rshunt)
+            f1 = r["peaks"][0][0] if r["peaks"] else float("nan")
+            k += 1
+            print(f"[{k:4d}] t={meta['batch_t_s']:>7}s  f1={f1:6.1f} Hz  "
+                  f"I={r['dc']:6.2f} mA  riak={r['ripple_rms']:.3f} mA  "
+                  f"V={meta.get('vbus_V', '?')}  terlewat={meta.get('missed', '?')}", flush=True)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        ser.close()
+    print(f"Selesai: {k} rekaman di {args.outdir}")
 
 
 if __name__ == "__main__":

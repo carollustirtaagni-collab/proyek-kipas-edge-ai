@@ -187,7 +187,7 @@ python tools/capture_fft.py --file data/<nama>.csv --noshow
 
 ## Progres dan Log Eksperimen
 
-**Langkah berikutnya:** (1) uji pembuktian pengaruh kipas angin ruangan: U02, 5 rekaman berurutan dengan kipas angin mati; (2) bila terbukti, tetapkan protokol rekam (tanpa aliran udara ruangan, pemanasan ≥ 3 menit) dan rekam ulang U01–U04 kondisi Sehat, lalu U05–U10. Pengukuran RPM dengan stroboskop masih tertunda.
+**Langkah berikutnya:** rekam beruntun U02–U04 kondisi Sehat (±150 rekaman per unit, kondisi ruangan dicatat di metadata), lalu U05–U10. Pengukuran RPM dengan stroboskop masih tertunda.
 
 - [x] Perakitan perangkat keras (ESP32-S3 + INA226 + kipas 12 V).
 - [x] Scan I²C: INA226 terdeteksi di **0x44**.
@@ -210,6 +210,16 @@ python tools/capture_fft.py --file data/<nama>.csv --noshow
 
   Temuan: (1) kecepatan naik ~4 % dalam 2 menit pertama, lalu berfluktuasi 313–320 Hz; (2) terdapat penurunan sesaat (t = 180 s dan 600 s) yang **selalu disertai kenaikan arus**, menandakan perubahan beban mekanis/aerodinamis; (3) dalam satu rekaman 2,7 s, kecepatan dapat bergeser hingga 4 Hz. Penyebab penurunan sesaat belum diketahui (kandidat: aliran udara ruangan, gesekan bantalan *stick-slip*). Implikasi: kecepatan kipas sehat bervariasi ±3 %, sehingga ciri berbasis orde (*order tracking*) diperlukan. Penurunan kecepatan + kenaikan arus menyerupai tanda Aliran Terhambat, sehingga **lingkungan aliran udara harus dikendalikan** saat merekam. Usulan sementara: pemanasan ≥ 3 menit sebelum merekam.
   - Selama uji ini (dan rekaman U01) terdapat **kipas angin ruangan berayun** di dekat meja uji, yang diduga kuat menyebabkan penurunan kecepatan sesaat. Rekaman U01 s1–s3 dan U02 s3 ditandai **berpotensi terpengaruh angin**. Uji pembuktian (U02, 5 rekaman berurutan dengan kipas angin mati) belum dilakukan.
+- [x] **05-10-2026: U01 sesi s4, 150 rekaman beruntun** (~4 s/rekaman, ±10 menit sejak kipas dipasang; kipas angin ruangan **mati**; 12,716–12,719 V; 0 konversi terlewat). Mode rekam beruntun ditambahkan ke `capture_fft.py` (`--count`, `--note`; metadata `batch_t_s` dan `catatan`).
+
+  | Selang waktu | n | f₁ (Hz) | I (mA) |
+  |---|---|---|---|
+  | 0–60 s | 14 | 316,2 ± 5,9 | 74,05 ± 0,54 |
+  | 60–180 s | 30 | 325,0 ± 1,2 | 72,92 ± 0,20 |
+  | 180–360 s | 45 | 325,6 ± 5,7 | 72,67 ± 0,25 |
+  | 360–700 s | 61 | 325,3 ± 4,8 | 72,62 ± 0,24 |
+
+  Temuan: (1) pemanasan ±1 menit (f₁ naik, arus turun); (2) setelah 60 s, kecepatan tetap bervariasi **±1,4 %** (313–337 Hz) dan **berkorelasi negatif kuat dengan arus (r = −0,84)**, walaupun kipas angin ruangan mati. Dugaan bahwa fluktuasi disebabkan angin ruangan **tidak didukung data**; fluktuasi beban tampaknya bersifat intrinsik pada kipas (penyebab belum diketahui). Variasi ini menjadi bagian data latih kelas Sehat dan memperkuat alasan pemakaian ciri berbasis orde.
 - [ ] **Pergeseran kecepatan U01 sesi s2.** Rekaman 01:01 menunjukkan 309,6 Hz / 74,3 mA, sedangkan satu menit kemudian 321,8 Hz / 73,2 mA pada 12,716 V. Putaran lebih lambat disertai arus lebih tinggi mengindikasikan beban mekanis sesaat (dugaan: aliran udara terhalang oleh posisi kipas, belum dikonfirmasi). Tindak lanjut: dudukan kipas yang terstandar.
 - [ ] **Penetapan orde 1× (RPM).** Hipotesis dari spektrum U01: (a) 321 Hz = 4 komutasi/putaran → **4.816 RPM** (80,3 Hz; orde bilah 7× di 562 Hz hanya +11,6 dB), paling masuk akal untuk kipas 5010; (b) 2 komutasi/putaran → 9.633 RPM (kecil kemungkinan); (c) 6 komutasi/putaran → 3.211 RPM (tidak ada orde 2×). Perlu verifikasi stroboskop atau uji massa.
 - [ ] Uji bilah patah (validasi *pipeline* sekaligus konfirmasi orde 1×).
