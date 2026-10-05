@@ -193,7 +193,7 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
 
 ## Progres dan Log Eksperimen
 
-**Langkah berikutnya:** rekam beruntun U03–U04 kondisi Sehat (±150 rekaman per unit, kondisi ruangan dicatat di metadata), lalu U05–U10. Pengukuran RPM dengan stroboskop masih tertunda.
+**Langkah berikutnya:** rekam beruntun U04 (sudah diinreyen) kondisi Sehat (±150 rekaman per unit, kondisi ruangan dicatat di metadata), lalu U05–U10. Pengukuran RPM dengan stroboskop masih tertunda.
 
 - [x] Perakitan perangkat keras (ESP32-S3 + INA226 + kipas 12 V).
 - [x] Scan I²C: INA226 terdeteksi di **0x44**.
@@ -236,6 +236,17 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
   | 360–700 s | 62 | 312,5 ± 4,8 | 74,98 ± 0,23 |
 
   Perbandingan setelah pemanasan (> 60 s): U01 = 325,3 ± 4,6 Hz / 72,7 mA; U02 = 313,9 ± 4,6 Hz / 75,0 mA. Kedua unit menunjukkan variasi kecepatan ±1,5 % dengan korelasi kecepatan–arus yang sama (r = −0,84) dan rasio riak/DC yang hampir identik (6,0 %). Perbedaan antar unit (±12 Hz, ±2,3 mA) lebih besar daripada variasi dalam satu unit, sehingga identitas unit berpotensi dipelajari model; hal ini harus dikendalikan melalui validasi LOUO dan ciri berbasis orde.
+- [x] **05-10-2026: Inreyen dan rekaman U03.** U03 dan U04 adalah kipas baru (belum pernah dinyalakan), sehingga diberi masa inreyen ±30 menit sebelum direkam sebagai data Sehat. 67 rekaman pertama U03 (±4,5 menit sejak pertama kali menyala) disimpan dengan label `runin_u03` (bukan data Sehat): f₁ naik 249 → 328 Hz dalam ±1,5 menit, arus turun 85,3 → 78,8 mA dan masih menurun perlahan. Setelah inreyen, 150 rekaman `sehat_u03_pwm100_s4` (U04 tidak terpasang).
+
+  Ringkasan kondisi Sehat setelah pemanasan (sesi s4):
+
+  | Unit | n | f₁ (Hz) | Variasi f₁ | I (mA) | Riak/DC | r(f₁, I) |
+  |---|---|---|---|---|---|---|
+  | U01 | 136 | 325,3 ± 4,6 | 1,4 % | 72,70 ± 0,26 | 6,02 % | −0,84 |
+  | U02 | 136 | 313,9 ± 4,6 | 1,5 % | 74,95 ± 0,29 | 5,97 % | −0,84 |
+  | U03 | 150 | 331,1 ± 1,5 | 0,5 % | 78,34 ± 0,07 | 5,88 % | −0,88 |
+
+  Rasio riak/DC konsisten antar unit (5,9–6,0 %), sedangkan kecepatan dan arus rata-rata berbeda nyata antar unit. U03 (baru) jauh lebih stabil dibanding U01/U02; penyebabnya belum diketahui.
 - [x] **05-10-2026: Data mentah dipindahkan ke Google Drive** (316 CSV, 33,7 MB; jumlah file terverifikasi sama).
 - [ ] **Pergeseran kecepatan U01 sesi s2.** Rekaman 01:01 menunjukkan 309,6 Hz / 74,3 mA, sedangkan satu menit kemudian 321,8 Hz / 73,2 mA pada 12,716 V. Putaran lebih lambat disertai arus lebih tinggi mengindikasikan beban mekanis sesaat (dugaan: aliran udara terhalang oleh posisi kipas, belum dikonfirmasi). Tindak lanjut: dudukan kipas yang terstandar.
 - [ ] **Penetapan orde 1× (RPM).** Hipotesis dari spektrum U01: (a) 321 Hz = 4 komutasi/putaran → **4.816 RPM** (80,3 Hz; orde bilah 7× di 562 Hz hanya +11,6 dB), paling masuk akal untuk kipas 5010; (b) 2 komutasi/putaran → 9.633 RPM (kecil kemungkinan); (c) 6 komutasi/putaran → 3.211 RPM (tidak ada orde 2×). Perlu verifikasi stroboskop atau uji massa.

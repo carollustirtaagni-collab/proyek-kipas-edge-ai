@@ -251,6 +251,8 @@ def main():
     ap.add_argument("--count", type=int, default=1,
                     help="rekam N kali beruntun (port dibuka sekali, tanpa PNG); 0 = sampai dihentikan")
     ap.add_argument("--note", default="", help="catatan kondisi, disimpan di metadata CSV")
+    ap.add_argument("--interval", type=float, default=0,
+                    help="mode beruntun: jarak minimum antar awal rekaman (detik)")
     args = ap.parse_args()
 
     if args.noshow:
@@ -304,6 +306,9 @@ def record_batch(args):
     k = 0
     try:
         while args.count == 0 or k < args.count:
+            wait = t0 + k * args.interval - time.time()
+            if wait > 0:
+                time.sleep(wait)
             meta, t, raw = parse_lines(capture_once(ser))
             meta["batch_t_s"] = f"{time.time() - t0:.1f}"   # detik sejak batch mulai
             if args.note:
