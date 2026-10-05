@@ -149,6 +149,12 @@ python tools/capture_fft.py --compare data/sehat_u01*.csv data/sehat_u02*.csv
 python tools/capture_fft.py --file data/<nama>.csv --noshow
 ```
 
+**Penyimpanan data mentah:** file CSV rekaman tidak disimpan di repositori (lihat `.gitignore`), melainkan di Google Drive (`My Drive/proyek-kipas-edge-ai-data/`, struktur folder sama dengan `data/`). Repositori hanya memuat kode, dokumentasi, dan grafik PNG. Sinkronisasi setelah merekam:
+
+```powershell
+robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
+```
+
 **Lingkungan pengembangan:** Windows 11, arduino-cli 1.5.1, core `esp32:esp32` 3.3.12, Python 3.13. Papan ESP32-S3 terhubung melalui USB-serial CH343 (port UART).
 
 ---
@@ -187,7 +193,7 @@ python tools/capture_fft.py --file data/<nama>.csv --noshow
 
 ## Progres dan Log Eksperimen
 
-**Langkah berikutnya:** rekam beruntun U02–U04 kondisi Sehat (±150 rekaman per unit, kondisi ruangan dicatat di metadata), lalu U05–U10. Pengukuran RPM dengan stroboskop masih tertunda.
+**Langkah berikutnya:** rekam beruntun U03–U04 kondisi Sehat (±150 rekaman per unit, kondisi ruangan dicatat di metadata), lalu U05–U10. Pengukuran RPM dengan stroboskop masih tertunda.
 
 - [x] Perakitan perangkat keras (ESP32-S3 + INA226 + kipas 12 V).
 - [x] Scan I²C: INA226 terdeteksi di **0x44**.
@@ -220,6 +226,17 @@ python tools/capture_fft.py --file data/<nama>.csv --noshow
   | 360–700 s | 61 | 325,3 ± 4,8 | 72,62 ± 0,24 |
 
   Temuan: (1) pemanasan ±1 menit (f₁ naik, arus turun); (2) setelah 60 s, kecepatan tetap bervariasi **±1,4 %** (313–337 Hz) dan **berkorelasi negatif kuat dengan arus (r = −0,84)**, walaupun kipas angin ruangan mati. Dugaan bahwa fluktuasi disebabkan angin ruangan **tidak didukung data**; fluktuasi beban tampaknya bersifat intrinsik pada kipas (penyebab belum diketahui). Variasi ini menjadi bagian data latih kelas Sehat dan memperkuat alasan pemakaian ciri berbasis orde.
+- [x] **05-10-2026: U02 sesi s4, 150 rekaman beruntun** (kondisi sama dengan U01 s4; 0 konversi terlewat).
+
+  | Selang waktu | n | f₁ (Hz) | I (mA) |
+  |---|---|---|---|
+  | 0–60 s | 14 | 302,5 ± 2,5 | 76,54 ± 0,43 |
+  | 60–180 s | 30 | 313,1 ± 3,6 | 75,22 ± 0,27 |
+  | 180–360 s | 44 | 316,4 ± 3,8 | 74,74 ± 0,18 |
+  | 360–700 s | 62 | 312,5 ± 4,8 | 74,98 ± 0,23 |
+
+  Perbandingan setelah pemanasan (> 60 s): U01 = 325,3 ± 4,6 Hz / 72,7 mA; U02 = 313,9 ± 4,6 Hz / 75,0 mA. Kedua unit menunjukkan variasi kecepatan ±1,5 % dengan korelasi kecepatan–arus yang sama (r = −0,84) dan rasio riak/DC yang hampir identik (6,0 %). Perbedaan antar unit (±12 Hz, ±2,3 mA) lebih besar daripada variasi dalam satu unit, sehingga identitas unit berpotensi dipelajari model; hal ini harus dikendalikan melalui validasi LOUO dan ciri berbasis orde.
+- [x] **05-10-2026: Data mentah dipindahkan ke Google Drive** (316 CSV, 33,7 MB; jumlah file terverifikasi sama).
 - [ ] **Pergeseran kecepatan U01 sesi s2.** Rekaman 01:01 menunjukkan 309,6 Hz / 74,3 mA, sedangkan satu menit kemudian 321,8 Hz / 73,2 mA pada 12,716 V. Putaran lebih lambat disertai arus lebih tinggi mengindikasikan beban mekanis sesaat (dugaan: aliran udara terhalang oleh posisi kipas, belum dikonfirmasi). Tindak lanjut: dudukan kipas yang terstandar.
 - [ ] **Penetapan orde 1× (RPM).** Hipotesis dari spektrum U01: (a) 321 Hz = 4 komutasi/putaran → **4.816 RPM** (80,3 Hz; orde bilah 7× di 562 Hz hanya +11,6 dB), paling masuk akal untuk kipas 5010; (b) 2 komutasi/putaran → 9.633 RPM (kecil kemungkinan); (c) 6 komutasi/putaran → 3.211 RPM (tidak ada orde 2×). Perlu verifikasi stroboskop atau uji massa.
 - [ ] Uji bilah patah (validasi *pipeline* sekaligus konfirmasi orde 1×).

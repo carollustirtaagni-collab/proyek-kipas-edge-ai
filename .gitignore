@@ -2,3 +2,6 @@ __pycache__/
 *.pyc
 build/
 .venv/
+
+# Data mentah rekaman disimpan di Google Drive, bukan di repositori
+data/**/*.csv
