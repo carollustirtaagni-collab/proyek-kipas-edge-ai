@@ -194,7 +194,7 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
 
 ## Progres dan Log Eksperimen
 
-**Langkah berikutnya:** (1) rangkaian PWM; rangkaian PWM untuk sapuan 40–100 % — data Sehat pada berbagai *duty* harus terkumpul **sebelum** perlakuan permanen (massa) pada unit jalur A. Pengukuran RPM dengan stroboskop masih tertunda.
+**Langkah berikutnya:** rangkaian PWM untuk sapuan 40–100 % — data Sehat pada berbagai *duty* harus terkumpul **sebelum** perlakuan permanen (massa) pada unit jalur A. Pengukuran RPM dengan stroboskop masih tertunda.
 
 - [x] Perakitan perangkat keras (ESP32-S3 + INA226 + kipas 12 V).
 - [x] Scan I²C: INA226 terdeteksi di **0x44**.
