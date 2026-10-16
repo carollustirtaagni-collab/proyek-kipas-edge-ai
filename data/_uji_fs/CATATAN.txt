@@ -1,0 +1,5 @@
+Uji laju cuplik 16-10-2026 (U11, tipe B) - TIDAK untuk dataset.
+- uji-fs4900_u11_*: VSHCT 204 us, I2C 1 MHz. Semua sampel "terlewat": jarak antar sampel 329 us
+  (median), ditentukan waktu baca ESP32 (2 transaksi I2C), bukan oleh INA226. Laju efektif ~3040 SPS
+  dengan pewaktuan tidak teratur. Kesimpulan: 4,9 kSPS tidak tercapai dengan metode baca saat ini.
+- uji-fs3030-cek_u11_*: verifikasi setelah firmware dikembalikan ke VSHCT 332 us (0 terlewat).
