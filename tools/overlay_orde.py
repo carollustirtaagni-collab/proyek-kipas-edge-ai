@@ -11,6 +11,8 @@ pita fundamental), lalu dirata-rata. Hasil:
 
 Contoh:
     python tools/overlay_orde.py --units u01 u02 u03 u04 --sesi s4 --skip 60
+    python tools/overlay_orde.py --tipe A:u01,u02,u03,u04 B:u05,u06 C:u09 --sesi s4
+    (dengan --tipe, warna mengikuti tipe kipas dan ditambah grafik bentuk gelombang)
 ------------------------------------------------------------------
 """
 import argparse
@@ -67,14 +69,29 @@ def style(ax):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--units", nargs="+", required=True)
+    ap.add_argument("--units", nargs="+", default=[])
+    ap.add_argument("--tipe", nargs="+", default=[],
+                    help="kelompok tipe, mis. A:u01,u02 B:u05,u06 (warna per tipe)")
     ap.add_argument("--sesi", default="s4")
     ap.add_argument("--skip", type=float, default=60, help="buang rekaman t < skip detik (pemanasan)")
     ap.add_argument("--outdir", default="data")
     args = ap.parse_args()
 
+    tipe_of = {}
+    for item in args.tipe:
+        name, members = item.split(":")
+        for u in members.split(","):
+            tipe_of[u] = name
+    units = list(tipe_of) or args.units
+    if not units:
+        ap.error("pakai --units atau --tipe")
+    tipe_names = list(dict.fromkeys(tipe_of.values()))
+
+    def color_of(u, k):
+        return COLORS[tipe_names.index(tipe_of[u])] if tipe_of else COLORS[k]
+
     res = {}
-    for u in args.units:
+    for u in units:
         recs = [per_recording(p) for p in sorted(glob.glob(f"data/sehat_{u}_pwm100_{args.sesi}_*.csv"))]
         recs = [r for r in recs if not (r["t"] < args.skip)]
         if recs:
@@ -85,9 +102,15 @@ def main():
     # ---- 1. Overlay spektrum orde ----
     fig, ax = plt.subplots(figsize=(11, 5.5), facecolor=SURFACE)
     style(ax)
+    seen = set()
     for k, (u, recs) in enumerate(res.items()):
         mean_amp = np.nanmean([r["amp_o"] for r in recs], axis=0)
-        ax.semilogy(ORDER_GRID, mean_amp, lw=1.2, color=COLORS[k], label=f"{u.upper()} (n={len(recs)})")
+        if tipe_of:
+            lbl = None if tipe_of[u] in seen else f"Tipe {tipe_of[u]}"
+            seen.add(tipe_of[u])
+        else:
+            lbl = f"{u.upper()} (n={len(recs)})"
+        ax.semilogy(ORDER_GRID, mean_amp, lw=1.0, alpha=0.85, color=color_of(u, k), label=lbl)
     for k in (1, 2, 3, 4):
         ax.axvline(k, color=MUTED, lw=0.6, ls=":")
     ax.set_xlabel("Orde (f / f₁)", color=INK2)
@@ -104,14 +127,41 @@ def main():
     style(ax)
     for k, (u, recs) in enumerate(res.items()):
         ax.scatter([r["dc"] for r in recs], [r["f1"] for r in recs], s=14, alpha=0.75,
-                   color=COLORS[k], edgecolors=SURFACE, linewidths=0.6, label=u.upper())
+                   color=color_of(u, k), edgecolors=SURFACE, linewidths=0.6, label=u.upper())
+        if tipe_of:
+            ax.annotate(u.upper(), (np.median([r["dc"] for r in recs]), np.max([r["f1"] for r in recs])),
+                        textcoords="offset points", xytext=(0, 4), ha="center", fontsize=8, color=INK2)
     ax.set_xlabel("Arus rata-rata (mA)", color=INK2)
     ax.set_ylabel("Frekuensi fundamental f₁ (Hz)", color=INK2)
     ax.set_title("Tiap titik = satu rekaman 2,7 s", color=INK, fontsize=11, loc="left")
-    ax.legend(frameon=False, labelcolor=INK2, fontsize=9)
+    if tipe_of:
+        handles = [plt.Line2D([], [], marker="o", ls="", color=COLORS[i]) for i in range(len(tipe_names))]
+        ax.legend(handles, [f"Tipe {t}" for t in tipe_names], frameon=False, labelcolor=INK2, fontsize=9)
+    else:
+        ax.legend(frameon=False, labelcolor=INK2, fontsize=9)
     fig.tight_layout()
     p2 = os.path.join(args.outdir, "gerbang_f1_vs_arus.png")
     fig.savefig(p2, dpi=130, facecolor=SURFACE)
+
+    # ---- 2b. Bentuk gelombang satu unit per tipe (small multiples, sumbu y sama) ----
+    p3 = None
+    if tipe_of:
+        reps = {t: next(u for u in res if tipe_of[u] == t) for t in tipe_names}
+        fig, axes = plt.subplots(len(reps), 1, figsize=(10, 2.3 * len(reps)), sharex=True, sharey=True,
+                                 facecolor=SURFACE)
+        axes = np.atleast_1d(axes)
+        for ax, (t, u) in zip(axes, reps.items()):
+            style(ax)
+            files = sorted(glob.glob(f"data/sehat_{u}_pwm100_{args.sesi}_*.csv"))
+            _, tt, raw = load_csv(files[len(files) // 2])
+            n = int(0.02 * 1e6 / np.median(np.diff(tt)))                 # 20 ms
+            ax.plot((tt[:n] - tt[0]) / 1e3, raw[:n] * LSB_MA, lw=1.2, color=COLORS[tipe_names.index(t)])
+            ax.set_title(f"Tipe {t} — {u.upper()}", color=INK, fontsize=10, loc="left")
+            ax.set_ylabel("Arus (mA)", color=INK2)
+        axes[-1].set_xlabel("Waktu (ms)", color=INK2)
+        fig.tight_layout()
+        p3 = os.path.join(args.outdir, "gerbang_bentuk_gelombang.png")
+        fig.savefig(p3, dpi=130, facecolor=SURFACE)
 
     # ---- 3. Tabel ciri ----
     names = ["f1 (Hz)", "I (mA)", "riak/DC (%)", "A orde1 (mA)", "A orde2 (mA)", "A orde3 (mA)", "A orde4 (mA)"]
@@ -125,7 +175,7 @@ def main():
         within = np.mean([rows[u][1][j] for u in rows])
         print(f"{n:14s}" + "".join(f"{rows[u][0][j]:>10.3f} ± {rows[u][1][j]:<5.3f}" for u in rows)
               + f"{means.std(ddof=1) if len(means) > 1 else float('nan'):>14.3f}{within:>14.3f}")
-    print(f"\nGambar: {p1}\n        {p2}")
+    print(f"\nGambar: {p1}\n        {p2}" + (f"\n        {p3}" if p3 else ""))
 
 
 if __name__ == "__main__":

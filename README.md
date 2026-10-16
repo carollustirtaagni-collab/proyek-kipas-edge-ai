@@ -28,7 +28,7 @@ Sistem pemantau kondisi kipas pendingin **DC 12 V** yang berjalan sepenuhnya di 
 | Domain | **DC 12 V** (disetujui dosen pembimbing) |
 | Mikrokontroler | ESP32-S3 (DevKitC-1 atau setara) |
 | Sensor | **INA226**, alamat I²C `0x44`, *shunt* bawaan **0,1 Ω** (R100) |
-| Objek uji | Kipas **Hanaya FAN5010DC**: 50×50×10 mm, *brushless*, 12 V / 0,09 A, 2 kabel (tanpa tacho), **7 bilah**. Total 10 unit (U01–U10) |
+| Objek uji | Kipas **Hanaya FAN5010DC**: 50×50×10 mm, *brushless*, 12 V / 0,09 A, 2 kabel (tanpa tacho), **7 bilah**. 10 unit utama (U01–U08, U10, U11) + U09 cadangan; terdapat dua tipe karakteristik arus (A dan B), lihat log 16-10-2026 |
 | Resolusi arus | 2,5 µV/LSB ÷ 0,1 Ω = **25 µA/LSB**; batas ukur 0,819 A |
 | Jumlah kelas | **4** (cadangan: 3 kelas bila kelas Aliran Terhambat tidak terpisah) |
 | Ciri | Spektrum FFT dengan ***order tracking*** (orde putaran, bukan Hz absolut) + statistik riak |
@@ -194,7 +194,7 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
 
 ## Progres dan Log Eksperimen
 
-**Langkah berikutnya:** (1) rekam U05–U10 kondisi Sehat (kipas baru: inreyen 30 menit dulu); (2) rangkaian PWM untuk sapuan 40–100 % — data Sehat pada berbagai *duty* harus terkumpul **sebelum** perlakuan permanen (massa) pada unit jalur A. Pengukuran RPM dengan stroboskop masih tertunda.
+**Langkah berikutnya:** (1) konsultasi dosen: pembagian jalur per tipe kipas dan penanganan *aliasing* tipe B (lihat `docs/analisis-gerbang-kelayakan-2.md`); (2) rangkaian PWM untuk sapuan 40–100 % — data Sehat pada berbagai *duty* harus terkumpul **sebelum** perlakuan permanen (massa) pada unit jalur A. Pengukuran RPM dengan stroboskop masih tertunda.
 
 - [x] Perakitan perangkat keras (ESP32-S3 + INA226 + kipas 12 V).
 - [x] Scan I²C: INA226 terdeteksi di **0x44**.
@@ -255,6 +255,12 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
   - Terdapat puncak di **kelipatan ¼ f₁** (0,5; 0,75; 1,25; 1,75; 2,25; 2,75). Ini mendukung hipotesis (a): f₁ = 4 × frekuensi putaran, sehingga **putaran ≈ f₁/4 ≈ 78–83 Hz (≈ 4.700–5.000 RPM)**. Belum dikonfirmasi stroboskop/uji massa.
   - Amplitudo di orde ¼ f₁ (kandidat **1× putaran**, tanda tangan Tidak Seimbang): 0,077 / 0,076 / 0,090 / 0,085 mA (U01–U04), σ antar-unit **0,007 mA**, σ dalam-unit ≈ 0,02 mA, lantai derau ≈ 0,04 mA. Garis dasar yang rendah dan seragam ini menjanjikan untuk mendeteksi massa tambahan.
   - Sebaliknya, orde ½ f₁ (0,21–0,98 mA) dan 1½ f₁ (0,22–0,80 mA) sangat berbeda antar unit, begitu pula arus rata-rata (σ antar-unit 2,33 mA vs σ dalam-unit 0,17 mA; keempat unit terpisah sempurna pada sumbu arus). Ciri-ciri ini berpotensi menjadi **sidik jari unit**, sehingga harus diwaspadai dalam pemilihan ciri dan diuji melalui LOUO.
+- [x] **16-10-2026: Rekaman U05–U11 sesi s4** (7 kipas baru, inreyen 1 jam; 150 rekaman per unit; 0 konversi terlewat; data di Google Drive). U09 direkam ulang 30× (`s4u`) tanpa beban listrik besar lain di jaringan, dengan hasil identik.
+- [~] **16-10-2026: Gerbang kelayakan langkah 1 — 11 unit** — laporan: [`docs/analisis-gerbang-kelayakan-2.md`](docs/analisis-gerbang-kelayakan-2.md); grafik `data/gerbang_bentuk_gelombang.png`, `data/gerbang_spektrum_orde.png`, `data/gerbang_f1_vs_arus.png`.
+  - Kipas berlabel sama terbagi menjadi **tiga tipe karakteristik arus**: **tipe A** U01–U04 (riak/DC ≈ 6 %, 73–78 mA), **tipe B** U05–U08, U10, U11 (riak/DC ≈ 25 %, 63–65 mA, arus anjlok tajam tiap komutasi), **tipe C** U09 (riak/DC ≈ 10 %, 71 mA).
+  - **U09 ditetapkan sebagai unit cadangan**; 10 unit utama: U01–U08, U10, U11.
+  - Tipe B mengalami *aliasing* berat (lantai derau ±0,11 mA vs ±0,04 mA tipe A), yang perlu ditangani sebelum sapuan PWM.
+  - Usulan pembagian jalur dengan kedua tipe di setiap jalur ada di laporan bagian 5 dan **menunggu persetujuan dosen pembimbing**.
 - [ ] **Pergeseran kecepatan U01 sesi s2.** Rekaman 01:01 menunjukkan 309,6 Hz / 74,3 mA, sedangkan satu menit kemudian 321,8 Hz / 73,2 mA pada 12,716 V. Putaran lebih lambat disertai arus lebih tinggi mengindikasikan beban mekanis sesaat (dugaan: aliran udara terhalang oleh posisi kipas, belum dikonfirmasi). Tindak lanjut: dudukan kipas yang terstandar.
 - [ ] **Penetapan orde 1× (RPM).** Hipotesis dari spektrum U01: (a) 321 Hz = 4 komutasi/putaran → **4.816 RPM** (80,3 Hz; orde bilah 7× di 562 Hz hanya +11,6 dB), paling masuk akal untuk kipas 5010; (b) 2 komutasi/putaran → 9.633 RPM (kecil kemungkinan); (c) 6 komutasi/putaran → 3.211 RPM (tidak ada orde 2×). Perlu verifikasi stroboskop atau uji massa.
 - [ ] Uji bilah patah (validasi *pipeline* sekaligus konfirmasi orde 1×).
