@@ -194,7 +194,7 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
 
 ## Progres dan Log Eksperimen
 
-**Langkah berikutnya:** rekam sesi s5 (Sehat + blokade) untuk jalur A dan B, mulai U03, sesuai protokol di log 16-10-2026. Pengukuran RPM dengan stroboskop masih tertunda.
+**Langkah berikutnya:** sesi s5 tahap 2 — Sehat untuk U02, U11, U05, U09; lalu kelas Tidak Dikenal; lalu massa (jalur A) dan bilah patah (U05). Pengukuran RPM dengan stroboskop masih tertunda.
 
 - [x] Perakitan perangkat keras (ESP32-S3 + INA226 + kipas 12 V).
 - [x] Scan I²C: INA226 terdeteksi di **0x44**.
@@ -265,6 +265,19 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
 - [x] **16-10-2026: Uji laju cuplik 4,9 kSPS (VSHCT 204 µs) pada U11 — gagal.** Jarak antar sampel tetap ±329 µs karena dibatasi waktu baca ESP32 (dua transaksi I²C per sampel pada 1 MHz), sehingga laju efektif tetap ±3040 SPS dengan pewaktuan tidak teratur. Firmware dikembalikan ke VSHCT 332 µs (3030 SPS, 0 terlewat). **Keputusan:** laju cuplik tetap 3030 SPS; *aliasing* tipe B ditangani dengan membatasi ciri pada orde rendah dan mengecualikan posisi *alias* yang diketahui. Tapis RC anti-*alias* di masukan INA226 dicatat sebagai opsi perbaikan bila hasil klasifikasi tipe B kurang. Data uji di `data/_uji_fs/`.
 - [x] **16-10-2026: Keputusan — tanpa sapuan kecepatan (PWM).** Karena keterbatasan waktu, seluruh kelas direkam pada tegangan penuh 12,7 V. Pertimbangan: (1) PWM memutus-sambung arus kipas pada frekuensi tinggi, sehingga pada laju cuplik 3030 SPS akan menimbulkan *aliasing* yang jauh lebih berat; (2) argumen keunggulan AI atas metode ambang batas tetap dapat ditunjukkan karena arus kipas sehat antar unit sudah tersebar 63–78 mA dan kelas Tidak Seimbang praktis tidak mengubah arus rata-rata. Konsekuensi: ketahanan model terhadap perubahan kecepatan tidak diuji; dicatat sebagai keterbatasan.
   Protokol pengambilan data selanjutnya: 50 rekaman per kondisi, sesi **s5**. Urutan: (1) jalur A dan B — Sehat s5 → blokade 50/75 % (templat karton berbentuk juring di sisi tiup, ditempel pada penyangga; bagian tertutup dimulai dari sudut kabel, searah jarum jam); (2) jalur E, C, dan cadangan — Sehat s5; (3) kelas Tidak Dikenal; (4) massa 33/67/100 mg pada jalur A; (5) bilah patah U05.
+- [x] **17–18-10-2026: Sesi s5 tahap 1 — Sehat + blokade 50/75 % pada jalur A dan B** (U03, U04, U06, U07, U01, U08, U10; 50 rekaman per kondisi; karton di sisi tiup; 0 konversi terlewat). Rata-rata 20 rekaman terakhir tiap kondisi (arus dalam mA):
+
+  | Unit | Tipe | I Sehat | I Blok 50 % | I Blok 75 % | ΔI 75 % | Riak/DC Sehat | Riak/DC Blok 75 % |
+  |---|---|---|---|---|---|---|---|
+  | U03 | A | 77,90 | 82,03 | 81,51 | +3,61 | 5,49 % | 5,29 % |
+  | U04 | A | 73,65 | 77,20 | 77,00 | +3,35 | 5,99 % | 5,81 % |
+  | U01 | A | 72,26 | 76,38 | 75,95 | +3,68 | 5,86 % | 5,57 % |
+  | U06 | B | 65,06 | 68,71 | 68,19 | +3,12 | 24,71 % | 24,63 % |
+  | U07 | B | 63,53 | 66,90 | 66,59 | +3,06 | 23,75 % | 23,39 % |
+  | U08 | B | 64,87 | 69,15 | 69,12 | +4,25 | 23,73 % | 23,16 % |
+  | U10 | B | 63,15 | 66,88 | 66,88 | +3,73 | 24,72 % | 24,17 % |
+
+  Temuan: (1) blokade di sisi tiup **menaikkan arus +3,1 s.d. +4,3 mA** dan menurunkan kecepatan pada semua unit dan kedua tipe (berlawanan dengan perkiraan awal "arus turun"); (2) blokade 75 % hampir identik dengan 50 % setelah stabil, sehingga keduanya praktis satu tingkat; (3) kenaikan arus akibat blokade (±3,5 mA) **jauh lebih kecil daripada sebaran arus Sehat antar unit (63–78 mA)**, sehingga ambang batas arus tunggal tidak dapat memisahkan Sehat dan Aliran Terhambat lintas unit; (4) setelah pemasangan karton, arus dan kecepatan masih bergeser selama ±2–3 menit; (5) kipas yang lama tidak dinyalakan (mis. U01, dingin >10 hari) mulai dengan kecepatan rendah dan arus tinggi yang menyerupai blokade, sehingga bagian awal rekaman Sehat yang belum stabil perlu dipisahkan saat pelatihan. Prosedur untuk unit berikutnya: pemanasan ±5 menit sebelum merekam.
 - [ ] **Pergeseran kecepatan U01 sesi s2.** Rekaman 01:01 menunjukkan 309,6 Hz / 74,3 mA, sedangkan satu menit kemudian 321,8 Hz / 73,2 mA pada 12,716 V. Putaran lebih lambat disertai arus lebih tinggi mengindikasikan beban mekanis sesaat (dugaan: aliran udara terhalang oleh posisi kipas, belum dikonfirmasi). Tindak lanjut: dudukan kipas yang terstandar.
 - [ ] **Penetapan orde 1× (RPM).** Hipotesis dari spektrum U01: (a) 321 Hz = 4 komutasi/putaran → **4.816 RPM** (80,3 Hz; orde bilah 7× di 562 Hz hanya +11,6 dB), paling masuk akal untuk kipas 5010; (b) 2 komutasi/putaran → 9.633 RPM (kecil kemungkinan); (c) 6 komutasi/putaran → 3.211 RPM (tidak ada orde 2×). Perlu verifikasi stroboskop atau uji massa.
 - [ ] Uji bilah patah (validasi *pipeline* sekaligus konfirmasi orde 1×).
