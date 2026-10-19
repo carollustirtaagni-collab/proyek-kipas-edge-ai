@@ -194,7 +194,7 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
 
 ## Progres dan Log Eksperimen
 
-**Langkah berikutnya:** kelas Tidak Dikenal — sisa: dua kipas paralel (U02 + U11), beban resistor/LED, transisi penyalaan; lalu massa (jalur A) dan bilah patah (U05). Pengukuran RPM dengan stroboskop masih tertunda.
+**Langkah berikutnya:** tahap 4 — massa 33/67/100 mg pada jalur A (U03, U04, U06, U07), lalu tahap 5 — bilah patah U05. Pengukuran RPM dengan stroboskop masih tertunda.
 
 - [x] Perakitan perangkat keras (ESP32-S3 + INA226 + kipas 12 V).
 - [x] Scan I²C: INA226 terdeteksi di **0x44**.
@@ -279,7 +279,17 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
 
   Temuan: (1) blokade di sisi tiup **menaikkan arus +3,1 s.d. +4,3 mA** dan menurunkan kecepatan pada semua unit dan kedua tipe (berlawanan dengan perkiraan awal "arus turun"); (2) blokade 75 % hampir identik dengan 50 % setelah stabil, sehingga keduanya praktis satu tingkat; (3) kenaikan arus akibat blokade (±3,5 mA) **jauh lebih kecil daripada sebaran arus Sehat antar unit (63–78 mA)**, sehingga ambang batas arus tunggal tidak dapat memisahkan Sehat dan Aliran Terhambat lintas unit; (4) setelah pemasangan karton, arus dan kecepatan masih bergeser selama ±2–3 menit; (5) kipas yang lama tidak dinyalakan (mis. U01, dingin >10 hari) mulai dengan kecepatan rendah dan arus tinggi yang menyerupai blokade, sehingga bagian awal rekaman Sehat yang belum stabil perlu dipisahkan saat pelatihan. Prosedur untuk unit berikutnya: pemanasan ±5 menit sebelum merekam.
 - [x] **18–19-10-2026: Sesi s5 tahap 2 — Sehat untuk U02, U11, U05, U09** (50 rekaman per unit; U02 ditambah 30 rekaman setelah hangat karena awal rekaman masih dingin: 236 Hz / 80,5 mA → 309 Hz / 74,1 mA). Nilai setelah stabil sesuai sesi s4: U02 74,1 mA, U11 63,8 mA, U05 65,1 mA, U09 71,4 mA (riak/DC U09 ≈ 9,8 %).
-- [~] **19-10-2026: Sesi s5 tahap 3 — kelas Tidak Dikenal.** Selesai: tanpa beban (30 rekaman; arus −0,07 mA = *offset* sensor, riak 0,028 mA = derau sensor). Belum: dua kipas paralel (U02 + U11), beban non-motor (resistor 150–220 Ω ≥ 1 W atau LED 12 V, menunggu ketersediaan komponen), transisi penyalaan.
+- [x] **19-10-2026: Sesi s5 tahap 3 — kelas Tidak Dikenal.**
+
+  | Kondisi | Label | n | Arus (mA) | Riak RMS (mA) |
+  |---|---|---|---|---|
+  | Tanpa beban | `unknown-tanpabeban_u00` | 30 | −0,07 (*offset*) | 0,028 (derau sensor) |
+  | LED strip 12 V | `unknown-led_u00` | 30 | 140,7–142,4 | 0,03 |
+  | LED strip dipotong hingga arus setara kipas | `unknown-ledpendek_u00` | 30 | 71,4–71,9 | 0,05 |
+  | Dua kipas paralel (U02 tipe A + U11 tipe B) | `unknown-2kipas_u02u11` | 50 | 137,4–137,8 | ±17,0 |
+  | Transisi (kabel negatif U02 dilepas-pasang tiap ±5 s) | `unknown-transisi_u02` | 30 | 0–84 | 0,03–44 |
+
+  Catatan: (1) LED pendek sengaja dibuat berarus sama dengan kipas (71 mA) agar tidak dapat dibedakan dari arus rata-rata, hanya dari pola riak (riak LED ±90× lebih kecil dari kipas tipe A); (2) pada LED pendek terdeteksi puncak sangat kecil di ±702 Hz walaupun tidak ada kipas yang terhubung (asal belum diketahui); (3) rekaman transisi berisi campuran jendela: ±13 jendela memuat peristiwa colok/cabut, ±5 jendela kipas lepas (arus ≈ 0), dan ±12 jendela kipas berjalan stabil yang identik dengan kondisi Sehat. **Saat pelatihan, hanya bagian yang memuat peristiwa transisi yang diberi label Tidak Dikenal**; bagian stabil dikeluarkan agar tidak bertentangan dengan kelas Sehat. Resistor 220 Ω tidak dipakai karena dayanya (¼ W) tidak cukup untuk 0,73 W.
 - [ ] **Pergeseran kecepatan U01 sesi s2.** Rekaman 01:01 menunjukkan 309,6 Hz / 74,3 mA, sedangkan satu menit kemudian 321,8 Hz / 73,2 mA pada 12,716 V. Putaran lebih lambat disertai arus lebih tinggi mengindikasikan beban mekanis sesaat (dugaan: aliran udara terhalang oleh posisi kipas, belum dikonfirmasi). Tindak lanjut: dudukan kipas yang terstandar.
 - [ ] **Penetapan orde 1× (RPM).** Hipotesis dari spektrum U01: (a) 321 Hz = 4 komutasi/putaran → **4.816 RPM** (80,3 Hz; orde bilah 7× di 562 Hz hanya +11,6 dB), paling masuk akal untuk kipas 5010; (b) 2 komutasi/putaran → 9.633 RPM (kecil kemungkinan); (c) 6 komutasi/putaran → 3.211 RPM (tidak ada orde 2×). Perlu verifikasi stroboskop atau uji massa.
 - [ ] Uji bilah patah (validasi *pipeline* sekaligus konfirmasi orde 1×).
