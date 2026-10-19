@@ -311,6 +311,17 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
   | Bilah patah | 326,3 | 66,95 | **1,566 ± 0,471** | 0,210 ± 0,051 |
 
   Amplitudo orde ½ naik 8,6× (**d = +4,1**); kecepatan turun ±7 %; arus naik 1,5 mA (masih jauh lebih kecil dari sebaran arus antar unit). Kerusakan besar terdeteksi jelas dari arus. Catatan: pada tipe B tanda ketidakseimbangan muncul di orde ½ f₁, bukan orde ¼ seperti dugaan dari tipe A; uji massa sebelumnya hanya dilakukan pada tipe A, sehingga kemungkinan massa pada tipe B terdeteksi di orde ½ **belum diuji**.
+- [~] **20-10-2026: Pelatihan dan evaluasi model 3 kelas** — skrip `tools/fitur.py` (17 ciri per jendela 768 sampel ≈ 253 ms), `tools/dataset.py` (26.870 jendela latih; filter kestabilan ±1 mA; jendela transisi hanya yang memuat peristiwa), `tools/latih_model.py` (MLP 32-16, LOUO, pembanding ambang batas). Evaluasi utama: **LOUO + antar-sesi sekaligus** — patokan per unit diambil dari Sehat sesi s4, pengujian hanya pada data sesi lain (s5/s5k) dari unit yang tidak ikut dilatih.
+
+  | Konfigurasi | Akurasi | Recall Sehat | Recall Terhambat | Recall Tidak Dikenal | Alarm palsu antar-sesi |
+  |---|---|---|---|---|---|
+  | Ambang batas I_RMS absolut (pembanding sesuai proposal) | 40,8 % | 89,8 % | 14,0 % | 0,4 % | — |
+  | MLP, 17 ciri tanpa patokan (LOUO, semua sesi) | 74,8 % | 80,2 % | 62,9 % | 59,5 % | 28,8 % |
+  | MLP, 16 ciri + selisih patokan (arus, riak) + pengaman arus 25 % | 86,1 % | 83,4 % | 85,0 % | 98,9 % | 3,6 % |
+  | MLP ringkas (5 ciri + selisih patokan arus & riak) + pengaman 25 % | 91,9 % | 99,6 % | 84,0 % | 99,9 % | 0,1 % |
+  | **Ambang batas relatif ΔI/I_patokan + pengaman 25 %** | **99,3 %** | 98,9 % | 99,6 % | 99,5 % | — |
+
+  Temuan: (1) tanpa patokan per unit, sebaran antar unit dan pergeseran antar hari (f₁ hingga ±6 %) membuat semua metode lemah; (2) arus jauh lebih stabil antar hari (≤ 1 mA) dibanding efek blokade (+3–4 mA, ≈ +5 %), sehingga patokan arus per unit sangat efektif, sedangkan patokan pada ciri kecepatan/spektrum justru merugikan; (3) **dengan patokan per unit, ambang batas relatif sederhana (99,3 %) mengungguli MLP (91,9 %)** — blokade terutama tampak sebagai kenaikan arus relatif, bukan perubahan bentuk spektrum; (4) dua kipas paralel (arus ≈ 2×) diklasifikasikan sebagai Terhambat oleh MLP sampai ditambahkan pengaman fisik |ΔI/I_patokan| > 25 % → Tidak Dikenal (batas ditetapkan dari fisika: efek blokade ≈ 5 %); ambang keyakinan *softmax* (0,6/0,8) tidak membantu; (5) unit tipe C (U09, tidak pernah dilatih) dikenali Sehat 98,9–100 % oleh MLP 16/5 ciri; (6) massa ≤ 103 mg dan bilah patah sebagian besar diprediksi Sehat, konsisten dengan hasil gerbang kelayakan.
 - [ ] **Pergeseran kecepatan U01 sesi s2.** Rekaman 01:01 menunjukkan 309,6 Hz / 74,3 mA, sedangkan satu menit kemudian 321,8 Hz / 73,2 mA pada 12,716 V. Putaran lebih lambat disertai arus lebih tinggi mengindikasikan beban mekanis sesaat (dugaan: aliran udara terhalang oleh posisi kipas, belum dikonfirmasi). Tindak lanjut: dudukan kipas yang terstandar.
 - [ ] **Penetapan orde 1× (RPM).** Hipotesis dari spektrum U01: (a) 321 Hz = 4 komutasi/putaran → **4.816 RPM** (80,3 Hz; orde bilah 7× di 562 Hz hanya +11,6 dB), paling masuk akal untuk kipas 5010; (b) 2 komutasi/putaran → 9.633 RPM (kecil kemungkinan); (c) 6 komutasi/putaran → 3.211 RPM (tidak ada orde 2×). Perlu verifikasi stroboskop atau uji massa.
 - [ ] Uji bilah patah (validasi *pipeline* sekaligus konfirmasi orde 1×).
