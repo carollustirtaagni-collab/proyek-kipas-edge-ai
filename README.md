@@ -194,7 +194,7 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
 
 ## Progres dan Log Eksperimen
 
-**Langkah berikutnya:** tahap 5 — bilah patah U05 (validasi *pipeline*), lalu pelatihan model 3 kelas. Pengukuran RPM dengan stroboskop masih tertunda.
+**Langkah berikutnya:** pelatihan model 3 kelas (Sehat, Aliran Terhambat, Tidak Dikenal) dengan validasi antar-sesi dan LOUO, pembanding metode ambang batas, kuantisasi int8, implementasi di ESP32-S3. Pengukuran RPM dengan stroboskop masih tertunda.
 
 - [x] Perakitan perangkat keras (ESP32-S3 + INA226 + kipas 12 V).
 - [x] Scan I²C: INA226 terdeteksi di **0x44**.
@@ -303,6 +303,14 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
 
   Temuan: (1) massa hingga 103 mg di akar bilah **tidak menghasilkan perubahan yang andal** di orde putaran maupun orde lain pada dua unit tipe A (syarat d > 2 tidak terpenuhi), walaupun kipas bergetar kuat secara mekanis (pada 68 mg U03 hampir jatuh dari dudukan, sehingga dudukan diperkuat; 9 rekaman yang terganggu dipindah ke `data/_batal/`); (2) arus rata-rata tidak berubah; (3) pemindaian seluruh pita orde memunculkan perbedaan besar palsu di posisi *alias* (orde ≈ 0,93; 1,43; 1,93; …) akibat perbedaan kecepatan antar rekaman, sehingga ciri di posisi *alias* tidak boleh dipakai. Dugaan: pada kipas kecil berbantalan luncur, gaya ketidakseimbangan diteruskan ke rangka/dudukan tetapi modulasi torsi motor per putaran sangat kecil dibanding fluktuasi beban alami (±1,5 % kecepatan).
   **Keputusan: model utama memakai skema cadangan 3 kelas — Sehat, Aliran Terhambat, Tidak Dikenal.** Kelas Tidak Seimbang dilaporkan sebagai hasil negatif terukur. U06 dan U07 tidak diberi massa (tetap utuh). Data massa U03/U04 disimpan di Google Drive.
+- [x] **20-10-2026: Tahap 5 — bilah patah U05 (uji kewajaran *pipeline*) — LULUS.** Separuh luar satu bilah dipotong; dudukan diperkuat; pembanding U05 Sehat dengan dudukan yang sama (`s5k`, 30 rekaman); 30 rekaman `patah_u05`.
+
+  | Kondisi | f₁ (Hz) | I (mA) | Orde ½ (mA) | Orde ¼ (mA) |
+  |---|---|---|---|---|
+  | Sehat | 351,2 | 65,49 | 0,183 ± 0,084 | 0,438 ± 0,281 |
+  | Bilah patah | 326,3 | 66,95 | **1,566 ± 0,471** | 0,210 ± 0,051 |
+
+  Amplitudo orde ½ naik 8,6× (**d = +4,1**); kecepatan turun ±7 %; arus naik 1,5 mA (masih jauh lebih kecil dari sebaran arus antar unit). Kerusakan besar terdeteksi jelas dari arus. Catatan: pada tipe B tanda ketidakseimbangan muncul di orde ½ f₁, bukan orde ¼ seperti dugaan dari tipe A; uji massa sebelumnya hanya dilakukan pada tipe A, sehingga kemungkinan massa pada tipe B terdeteksi di orde ½ **belum diuji**.
 - [ ] **Pergeseran kecepatan U01 sesi s2.** Rekaman 01:01 menunjukkan 309,6 Hz / 74,3 mA, sedangkan satu menit kemudian 321,8 Hz / 73,2 mA pada 12,716 V. Putaran lebih lambat disertai arus lebih tinggi mengindikasikan beban mekanis sesaat (dugaan: aliran udara terhalang oleh posisi kipas, belum dikonfirmasi). Tindak lanjut: dudukan kipas yang terstandar.
 - [ ] **Penetapan orde 1× (RPM).** Hipotesis dari spektrum U01: (a) 321 Hz = 4 komutasi/putaran → **4.816 RPM** (80,3 Hz; orde bilah 7× di 562 Hz hanya +11,6 dB), paling masuk akal untuk kipas 5010; (b) 2 komutasi/putaran → 9.633 RPM (kecil kemungkinan); (c) 6 komutasi/putaran → 3.211 RPM (tidak ada orde 2×). Perlu verifikasi stroboskop atau uji massa.
 - [ ] Uji bilah patah (validasi *pipeline* sekaligus konfirmasi orde 1×).
