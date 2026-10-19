@@ -30,7 +30,7 @@ Sistem pemantau kondisi kipas pendingin **DC 12 V** yang berjalan sepenuhnya di 
 | Sensor | **INA226**, alamat I²C `0x44`, *shunt* bawaan **0,1 Ω** (R100) |
 | Objek uji | Kipas **Hanaya FAN5010DC**: 50×50×10 mm, *brushless*, 12 V / 0,09 A, 2 kabel (tanpa tacho), **7 bilah**. 10 unit utama (U01–U08, U10, U11) + U09 cadangan; terdapat dua tipe karakteristik arus (A dan B), lihat log 16-10-2026 |
 | Resolusi arus | 2,5 µV/LSB ÷ 0,1 Ω = **25 µA/LSB**; batas ukur 0,819 A |
-| Jumlah kelas | **4** (cadangan: 3 kelas bila kelas Aliran Terhambat tidak terpisah) |
+| Jumlah kelas | Rencana 4; **dipakai skema 3 kelas** (Sehat, Aliran Terhambat, Tidak Dikenal) karena kelas Tidak Seimbang tidak lulus gerbang kelayakan (keputusan 19-10-2026) |
 | Ciri | Spektrum FFT dengan ***order tracking*** (orde putaran, bukan Hz absolut) + statistik riak |
 | Model | MLP kecil, kuantisasi int8, ESP-NN / ESP-DSP |
 | Validasi | **Antar-sesi** dan ***leave-one-unit-out*** (LOUO). Tidak memakai pembagian acak per jendela, karena menyebabkan kebocoran data. |
@@ -194,7 +194,7 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
 
 ## Progres dan Log Eksperimen
 
-**Langkah berikutnya:** tahap 4 — massa 33/67/100 mg pada jalur A (U03, U04, U06, U07), lalu tahap 5 — bilah patah U05. Pengukuran RPM dengan stroboskop masih tertunda.
+**Langkah berikutnya:** tahap 5 — bilah patah U05 (validasi *pipeline*), lalu pelatihan model 3 kelas. Pengukuran RPM dengan stroboskop masih tertunda.
 
 - [x] Perakitan perangkat keras (ESP32-S3 + INA226 + kipas 12 V).
 - [x] Scan I²C: INA226 terdeteksi di **0x44**.
@@ -290,6 +290,19 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
   | Transisi (kabel negatif U02 dilepas-pasang tiap ±5 s) | `unknown-transisi_u02` | 30 | 0–84 | 0,03–44 |
 
   Catatan: (1) LED pendek sengaja dibuat berarus sama dengan kipas (71 mA) agar tidak dapat dibedakan dari arus rata-rata, hanya dari pola riak (riak LED ±90× lebih kecil dari kipas tipe A); (2) pada LED pendek terdeteksi puncak sangat kecil di ±702 Hz walaupun tidak ada kipas yang terhubung (asal belum diketahui); (3) rekaman transisi berisi campuran jendela: ±13 jendela memuat peristiwa colok/cabut, ±5 jendela kipas lepas (arus ≈ 0), dan ±12 jendela kipas berjalan stabil yang identik dengan kondisi Sehat. **Saat pelatihan, hanya bagian yang memuat peristiwa transisi yang diberi label Tidak Dikenal**; bagian stabil dikeluarkan agar tidak bertentangan dengan kelas Sehat. Resistor 220 Ω tidak dipakai karena dayanya (¼ W) tidak cukup untuk 0,73 W.
+- [x] **19-10-2026: Tahap 4 — massa (gerbang kelayakan langkah 2) — TIDAK LULUS.** Kawat tembaga Ø0,9 mm di akar bilah (sisi hisap). Analisis `tools/cek_massa.py`, ciri amplitudo di orde ¼ f₁ (kandidat 1× putaran), 60 s pertama tiap kondisi dibuang:
+
+  | Unit | Dudukan | Kondisi | Orde ¼ (mA) | d dalam-unit vs Sehat |
+  |---|---|---|---|---|
+  | U03 | lama (Sehat) / diperkuat (68, 103 mg) | Sehat | 0,064 ± 0,015 | — |
+  | U03 | | 34 mg | 0,068 ± 0,018 | +0,2 |
+  | U03 | | 68 mg | 0,086 ± 0,020 | +1,2 |
+  | U03 | | 103 mg | 0,084 ± 0,037 | +0,7 |
+  | U04 | diperkuat (keduanya, `s5k`) | Sehat | 0,080 ± 0,029 | — |
+  | U04 | | 103 mg | 0,066 ± 0,022 | −0,5 |
+
+  Temuan: (1) massa hingga 103 mg di akar bilah **tidak menghasilkan perubahan yang andal** di orde putaran maupun orde lain pada dua unit tipe A (syarat d > 2 tidak terpenuhi), walaupun kipas bergetar kuat secara mekanis (pada 68 mg U03 hampir jatuh dari dudukan, sehingga dudukan diperkuat; 9 rekaman yang terganggu dipindah ke `data/_batal/`); (2) arus rata-rata tidak berubah; (3) pemindaian seluruh pita orde memunculkan perbedaan besar palsu di posisi *alias* (orde ≈ 0,93; 1,43; 1,93; …) akibat perbedaan kecepatan antar rekaman, sehingga ciri di posisi *alias* tidak boleh dipakai. Dugaan: pada kipas kecil berbantalan luncur, gaya ketidakseimbangan diteruskan ke rangka/dudukan tetapi modulasi torsi motor per putaran sangat kecil dibanding fluktuasi beban alami (±1,5 % kecepatan).
+  **Keputusan: model utama memakai skema cadangan 3 kelas — Sehat, Aliran Terhambat, Tidak Dikenal.** Kelas Tidak Seimbang dilaporkan sebagai hasil negatif terukur. U06 dan U07 tidak diberi massa (tetap utuh). Data massa U03/U04 disimpan di Google Drive.
 - [ ] **Pergeseran kecepatan U01 sesi s2.** Rekaman 01:01 menunjukkan 309,6 Hz / 74,3 mA, sedangkan satu menit kemudian 321,8 Hz / 73,2 mA pada 12,716 V. Putaran lebih lambat disertai arus lebih tinggi mengindikasikan beban mekanis sesaat (dugaan: aliran udara terhalang oleh posisi kipas, belum dikonfirmasi). Tindak lanjut: dudukan kipas yang terstandar.
 - [ ] **Penetapan orde 1× (RPM).** Hipotesis dari spektrum U01: (a) 321 Hz = 4 komutasi/putaran → **4.816 RPM** (80,3 Hz; orde bilah 7× di 562 Hz hanya +11,6 dB), paling masuk akal untuk kipas 5010; (b) 2 komutasi/putaran → 9.633 RPM (kecil kemungkinan); (c) 6 komutasi/putaran → 3.211 RPM (tidak ada orde 2×). Perlu verifikasi stroboskop atau uji massa.
 - [ ] Uji bilah patah (validasi *pipeline* sekaligus konfirmasi orde 1×).

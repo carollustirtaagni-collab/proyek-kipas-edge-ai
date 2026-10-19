@@ -1,0 +1,3 @@
+﻿Rekaman dibatalkan 19-10-2026 - TIDAK untuk dataset.
+- massa068_u03_pwm100_s5_* (9 rekaman): U03 dengan massa ~68 mg bergetar kuat sampai hampir jatuh dari dudukan
+  selama perekaman. Perekaman dihentikan; dudukan diperkuat sebelum diulang.
