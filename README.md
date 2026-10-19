@@ -52,7 +52,7 @@ Sistem pemantau kondisi kipas pendingin **DC 12 V** yang berjalan sepenuhnya di 
 | # | Kelas | Cara pembuatan | Tingkat | Tanda tangan yang diharapkan |
 |---|---|---|---|---|
 | 1 | **Sehat** | Kipas apa adanya | — | Puncak orde 1×, orde bilah, dan komutasi bersih |
-| 2 | **Tidak Seimbang** | Kawat solder Ø1 mm (~6,7 mg/mm) di akar satu bilah, direkatkan lem CA | 5/10/15 mm = 33/67/100 mg | Puncak orde 1× naik; arus rata-rata praktis tidak berubah, sehingga tidak terdeteksi metode ambang batas |
+| 2 | **Tidak Seimbang** | Kawat **tembaga Ø0,9 mm** (±5,7 mg/mm, dihitung dari diameter dan massa jenis 8,96 g/cm³) di akar satu bilah yang ditandai, direkatkan lem CA; potongan 6 mm ditambahkan berdampingan per tingkat (keputusan 19-10-2026, menggantikan timah solder Ø1 mm yang tidak tersedia) | 6/12/18 mm ≈ **34/68/103 mg** | Puncak orde 1× naik; arus rata-rata praktis tidak berubah, sehingga tidak terdeteksi metode ambang batas |
 | 3 | **Aliran Terhambat** | Templat karton berbentuk juring di **sisi tiup** (sisi hisap tidak memiliki penyangga; keputusan 17-10-2026) | Tertutup **50/75 %** (25 % dihapus, keputusan 17-10-2026) | Derau pita lebar naik, puncak bilah melebar; arus diperkirakan sedikit turun (kipas aksial, *belum diverifikasi*) |
 | 4 | **Tidak Dikenal** | Kipas mati, beban non-motor (resistor/LED), masa transisi, dua kipas sekaligus | — | — |
 
