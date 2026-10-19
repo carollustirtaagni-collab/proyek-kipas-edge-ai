@@ -202,7 +202,7 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
 
 ## Progres dan Log Eksperimen
 
-**Langkah berikutnya:** gladi demo sesuai [`docs/skenario-demo.md`](docs/skenario-demo.md) (babak 4 dengan U02 belum diuji); penulisan Proposal Revisi 3 / laporan. Opsional: uji beban non-kipas dengan kenaikan arus di rentang blokade (+2–7 %) untuk membandingkan AI dan ambang relatif. Pengukuran RPM dengan stroboskop masih tertunda.
+**Langkah berikutnya:** gladi demo sesuai [`docs/skenario-demo.md`](docs/skenario-demo.md) (babak 1–4 sudah diuji 20-10-2026); penulisan Proposal Revisi 3 / laporan. Opsional: uji beban non-kipas dengan kenaikan arus di rentang blokade (+2–7 %) untuk membandingkan AI dan ambang relatif. Pengukuran RPM dengan stroboskop masih tertunda.
 
 - [x] Perakitan perangkat keras (ESP32-S3 + INA226 + kipas 12 V).
 - [x] Scan I²C: INA226 terdeteksi di **0x44**.
@@ -349,6 +349,17 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
   | LED strip pendek (tanpa kalibrasi ulang) | 70 | **Tidak Dikenal 70/70** | +8,5 % | 1,00 |
 
   **Latensi:** inferensi MLP int8 rata-rata **125 µs** (maks 153 µs); ciri + FFT ±10,0 ms; *end-to-end* ≈ 253 ms (jendela) + 10 ms ≈ **263 ms** (target < 300 ms). Catatan pembanding: ambang batas relatif hasil pelatihan (batas +2,17 % dan +7,43 %) juga memberi hasil benar untuk keempat kondisi di atas; keunggulan model AI atas ambang relatif hanya dapat diharapkan untuk beban non-kipas yang kenaikan arusnya berada di rentang blokade (+2–7 %), dan **belum diuji**.
+- [x] **20-10-2026: Uji langsung lanjutan — kipas acak tanpa kalibrasi dan gladi lintas tipe (U02, tipe A).**
+
+  | Kondisi | Patokan aktif | ΔI | Hasil |
+  |---|---|---|---|
+  | LED pendek masih terpasang (dikira kipas) | U11 | +12,5 % | Tidak Dikenal 53/53 (riak/DC 0,07 %, bukan kipas berputar) |
+  | U02 dipasang **tanpa kalibrasi ulang** (masih dingin, 78 mA) | U11 | +22 % | **Tidak Dikenal** 53/53 (riak/DC 5,9 % vs patokan 25,6 %) |
+  | U02 setelah hangat, **dikalibrasi** (patokan 74,09 mA, riak/DC 6,1 %) | U02 | −0,1 % | Sehat 49/50 |
+  | U02 + blokade 50 % sisi tiup, 0–25 s | U02 | +2,2 % | Terhambat 62/87 (keyakinan 0,58–0,76) |
+  | U02 + blokade 50 %, setelah ±1 menit | U02 | +2,7 % | **Terhambat 104/105** (keyakinan 0,80–0,87) |
+
+  Temuan: tanpa kalibrasi, kipas berbeda tipe dikenali sebagai beban yang tidak dikenal (bukan dipaksa Sehat/Terhambat), sedangkan setelah kalibrasi diklasifikasikan benar. Efek blokade pada U02 lebih kecil (+2,7 %) dan butuh ±1 menit untuk stabil.
 - [ ] **Pergeseran kecepatan U01 sesi s2.** Rekaman 01:01 menunjukkan 309,6 Hz / 74,3 mA, sedangkan satu menit kemudian 321,8 Hz / 73,2 mA pada 12,716 V. Putaran lebih lambat disertai arus lebih tinggi mengindikasikan beban mekanis sesaat (dugaan: aliran udara terhalang oleh posisi kipas, belum dikonfirmasi). Tindak lanjut: dudukan kipas yang terstandar.
 - [ ] **Penetapan orde 1× (RPM).** Hipotesis dari spektrum U01: (a) 321 Hz = 4 komutasi/putaran → **4.816 RPM** (80,3 Hz; orde bilah 7× di 562 Hz hanya +11,6 dB), paling masuk akal untuk kipas 5010; (b) 2 komutasi/putaran → 9.633 RPM (kecil kemungkinan); (c) 6 komutasi/putaran → 3.211 RPM (tidak ada orde 2×). Perlu verifikasi stroboskop atau uji massa.
 - [ ] Uji bilah patah (validasi *pipeline* sekaligus konfirmasi orde 1×).

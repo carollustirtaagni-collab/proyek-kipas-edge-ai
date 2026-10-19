@@ -79,7 +79,9 @@ Tunjukkan bahwa inferensi hanya **±125 µs** dan seluruh proses terjadi di ESP3
 **Narasi:**
 > "U02 berasal dari tipe penggerak yang berbeda. Bentuk arusnya jauh berbeda dari U11 (riak 6 % vs 25 % dari arus DC), tetapi model yang sama tetap bekerja setelah kalibrasi."
 
-> ⚠️ **Babak ini belum diuji langsung.** Lakukan gladi (bagian 6) sebelum demo. Bila hasilnya tidak konsisten, lewati babak ini dan tampilkan angka per tipe dari evaluasi (tipe A dan tipe B) di slide.
+> ✅ **Diuji 20-10-2026:** U02 dikalibrasi pada 74,09 mA → Sehat 49/50; dengan karton 50 % → Aliran Terhambat 104/105 setelah ±1 menit (ΔI +2,7 %, keyakinan 0,80–0,87). Efek blokade pada U02 lebih kecil daripada U11, jadi **tunggu ±1 menit** setelah karton dipasang sebelum menjelaskan hasil. Pastikan U02 sudah hangat sebelum kalibrasi (arus dingin ±78 mA, hangat ±74 mA).
+
+**Variasi menarik (opsional, sebelum kalibrasi U02):** pasang U02 **tanpa** kalibrasi ulang. Alat menampilkan **Tidak Dikenal**, karena kipas ini berbeda dari kipas yang dikalibrasi (riak/DC 6 % vs 25 %). Ini cara paling meyakinkan untuk menjawab "kenapa perlu kalibrasi?".
 
 ### Babak 5 — Mengapa tidak cukup dengan ambang batas arus? (±1 menit, slide)
 
@@ -124,7 +126,7 @@ Tampilkan tabel di bagian 5. Pesan kunci:
 ## 6. Gladi (lakukan minimal sekali sebelum hari demo)
 
 - [ ] Babak 1–3 dengan U11 (sudah berhasil pada uji 20-10-2026)
-- [ ] Babak 4 dengan U02 (**belum diuji**)
+- [x] Babak 4 dengan U02 (berhasil pada uji 20-10-2026; tunggu ±1 menit setelah karton dipasang)
 - [ ] Waktu total ≤ 6 menit
 - [ ] Coba rencana cadangan: cabut-colok USB, kalibrasi ulang
 
