@@ -202,7 +202,7 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
 
 ## Progres dan Log Eksperimen
 
-**Langkah berikutnya:** uji langsung firmware `03_klasifikasi` dengan kipas (kalibrasi → Sehat → blokade → beban lain), ukur latensi, lalu skenario demo. Pengukuran RPM dengan stroboskop masih tertunda.
+**Langkah berikutnya:** skenario demo dan penulisan Proposal Revisi 3 / laporan. Opsional: uji beban non-kipas dengan kenaikan arus di rentang blokade (+2–7 %) untuk membandingkan AI dan ambang relatif. Pengukuran RPM dengan stroboskop masih tertunda.
 
 - [x] Perakitan perangkat keras (ESP32-S3 + INA226 + kipas 12 V).
 - [x] Scan I²C: INA226 terdeteksi di **0x44**.
@@ -339,6 +339,16 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
   | Ambang batas relatif ΔI/I_patokan + pengaman | 99,3 % | 98,9 % | 99,6 % | 99,5 % | 1,1 % |
 
   Unit terlemah: U04 (69,5 %; sebagian jendela blokade diprediksi Sehat). Unit tipe C (U09, tidak pernah dilatih) dikenali Sehat 100 %. Firmware `03_klasifikasi`: jendela 768 sampel, ciri + FFT radix-2 1024 titik, MLP int8, pemungutan suara 5 jendela, kalibrasi ±10 s disimpan di NVS. Verifikasi `tools/cek_firmware.py`: selisih ciri firmware vs Python < 1·10⁻⁶; laju cuplik firmware 3030,3 SPS (median, sama dengan data latih). Model memakai kode C int8 biasa (bukan ESP-NN) karena ukurannya sangat kecil.
+- [x] **20-10-2026: Uji langsung firmware `03_klasifikasi`** (U11, tipe B, unit kontrol yang data blokadenya tidak pernah dipakai dalam pelatihan; dipantau dengan `tools/pantau.py`). Kalibrasi ±10 s: arus patokan 64,14 mA, riak/DC 0,256.
+
+  | Kondisi | Jendela | Hasil | ΔI terhadap patokan | Keyakinan |
+  |---|---|---|---|---|
+  | Sehat setelah kalibrasi | 48 | Sehat 48/48 | −0,4 s.d. +0,4 % | 0,98–0,99 |
+  | Blokade 50 % sisi tiup | 71 | **Aliran Terhambat 71/71** | +3,7 s.d. +4,7 % | 0,77–0,96 |
+  | Karton dilepas | 70 | Sehat 70/70 | +0,3 s.d. +0,9 % | 0,97–0,98 |
+  | LED strip pendek (tanpa kalibrasi ulang) | 70 | **Tidak Dikenal 70/70** | +8,5 % | 1,00 |
+
+  **Latensi:** inferensi MLP int8 rata-rata **125 µs** (maks 153 µs); ciri + FFT ±10,0 ms; *end-to-end* ≈ 253 ms (jendela) + 10 ms ≈ **263 ms** (target < 300 ms). Catatan pembanding: ambang batas relatif hasil pelatihan (batas +2,17 % dan +7,43 %) juga memberi hasil benar untuk keempat kondisi di atas; keunggulan model AI atas ambang relatif hanya dapat diharapkan untuk beban non-kipas yang kenaikan arusnya berada di rentang blokade (+2–7 %), dan **belum diuji**.
 - [ ] **Pergeseran kecepatan U01 sesi s2.** Rekaman 01:01 menunjukkan 309,6 Hz / 74,3 mA, sedangkan satu menit kemudian 321,8 Hz / 73,2 mA pada 12,716 V. Putaran lebih lambat disertai arus lebih tinggi mengindikasikan beban mekanis sesaat (dugaan: aliran udara terhalang oleh posisi kipas, belum dikonfirmasi). Tindak lanjut: dudukan kipas yang terstandar.
 - [ ] **Penetapan orde 1× (RPM).** Hipotesis dari spektrum U01: (a) 321 Hz = 4 komutasi/putaran → **4.816 RPM** (80,3 Hz; orde bilah 7× di 562 Hz hanya +11,6 dB), paling masuk akal untuk kipas 5010; (b) 2 komutasi/putaran → 9.633 RPM (kecil kemungkinan); (c) 6 komutasi/putaran → 3.211 RPM (tidak ada orde 2×). Perlu verifikasi stroboskop atau uji massa.
 - [ ] Uji bilah patah (validasi *pipeline* sekaligus konfirmasi orde 1×).
