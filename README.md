@@ -122,10 +122,18 @@ Kapasitor elektrolit 1000 µF dipasang pada keluaran catu daya, **sebelum *shunt
 firmware/00_diagnosa_i2c/    Scan I²C 100 kHz & 400 kHz + pembacaan ID di tiap alamat
 firmware/01_ina226_cek/      Verifikasi ID chip + pembacaan arus lambat (AVG=16, 115200 baud)
 firmware/02_ina226_capture/  Akuisisi burst 8192 sampel via ALERT, keluaran CSV (921600 baud, perintah 'c')
+firmware/03_klasifikasi/     Klasifikasi di perangkat: ciri + FFT 1024 + MLP int8 (model_data.h), kalibrasi per kipas ('k' / tombol BOOT)
 tools/capture_fft.py         Rekam dari serial → CSV di data/ → plot domain waktu + FFT; --compare untuk overlay
 tools/serial_log.py          Pembacaan serial selama N detik (non-interaktif)
 docs/                        Proposal Rev. 2, ringkasan keputusan terdahulu, laporan analisis, foto komponen
 tools/overlay_orde.py        Overlay spektrum orde antar unit + tabel sebaran ciri (gerbang kelayakan)
+tools/cek_massa.py           Efek massa pada orde putaran (Cohen's d)
+tools/fitur.py               Definisi ciri per jendela (acuan firmware)
+tools/dataset.py             Penyusunan dataset jendela berlabel → data/fitur_jendela.npz
+tools/latih_model.py         Eksperimen model: LOUO, antar-sesi, pembanding ambang batas
+tools/ekspor_model.py        Model final + kuantisasi int8 → firmware/03_klasifikasi/model_data.h
+tools/evaluasi_final.py      Evaluasi pipeline firmware (int8) dengan LOUO + antar-sesi
+tools/cek_firmware.py        Verifikasi kesetaraan ciri & keluaran model firmware vs Python
 data/                        Rekaman CSV + grafik PNG
 ```
 
@@ -168,7 +176,7 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
 - Mode akuisisi: config = `0x4000 | (VSHCT<<3) | 0x5` (*shunt* kontinu). **AVG = 1 wajib**, karena *averaging* internal bekerja sebagai tapis lolos-rendah yang menghapus riak.
 - *Conversion Ready*: mask/enable `0x0400` (CNVR) membuat ALERT turun setiap konversi selesai. Membaca `0x06` menghapus *flag*, sehingga dibutuhkan 2 transaksi I²C per sampel.
 - **Urutan baca: `0x06` (hapus *flag*) dulu, baru *shunt*.** Jika urutannya terbalik, *flag* konversi berikutnya ikut terhapus sehingga setiap konversi kedua hilang secara teratur (terukur 597 µs/sampel). Pola teratur ini tidak terdeteksi oleh pemeriksaan celah berbasis median. Karena itu, `capture_fft.py` memakai hitungan `#missed` yang dilaporkan ESP32.
-- **Laju cuplik terukur: 3030 SPS** (VSHCT 332 µs, I²C **1 MHz**, 0 konversi terlewat). Pada 400 kHz, batas resmi INA226, dua transaksi I²C membutuhkan ~454 µs, lebih lama dari satu konversi. Pengoperasian 1 MHz berada di luar spesifikasi resmi tetapi terbukti stabil secara empiris. Kipas 5 cm dapat mencapai 3.500–5.500 RPM (komutasi hingga ~1,1 kHz), sehingga frekuensi Nyquist harus > ~1,2 kHz. Laju 4,9 kSPS (VSHCT 204 µs) **tidak tercapai**: waktu baca ESP32 ±329 µs per sampel (uji 16-10-2026).
+- **Laju cuplik terukur: 3030 SPS (median)** (VSHCT 332 µs, I²C **1 MHz**, 0 konversi terlewat). Catatan 20-10-2026: rata-rata jarak antar sampel 346,7 µs (2884 SPS) karena ±14 % jarak sampel memanjang ke ±440 µs (ESP32 sesekali terlambat membaca); pencuplikan tidak sepenuhnya seragam. Data latih dan firmware klasifikasi memakai definisi yang sama (median), sehingga konsisten. Pada 400 kHz, batas resmi INA226, dua transaksi I²C membutuhkan ~454 µs, lebih lama dari satu konversi. Pengoperasian 1 MHz berada di luar spesifikasi resmi tetapi terbukti stabil secara empiris. Kipas 5 cm dapat mencapai 3.500–5.500 RPM (komutasi hingga ~1,1 kHz), sehingga frekuensi Nyquist harus > ~1,2 kHz. Laju 4,9 kSPS (VSHCT 204 µs) **tidak tercapai**: waktu baca ESP32 ±329 µs per sampel (uji 16-10-2026).
 - ***Aliasing*:** INA226 tidak memiliki tapis anti-*alias* (hanya integrasi selama waktu konversi). Harmonik ke-5 dan seterusnya dari 321 Hz terlipat ke bawah frekuensi Nyquist. Saat sapuan PWM, komponen *alias* bergerak berlawanan arah dengan orde sebenarnya, sehingga ciri *order tracking* dibatasi pada orde di bawah Nyquist.
 - Bila SNR kurang: perpanjang FFT (1024 → 4096 memberi +6 dB dan Δf lebih halus) atau gunakan rata-rata Welch.
 - Catu daya terbaik untuk pengambilan data adalah aki/baterai 12 V, karena adaptor *switching* murah menambah derau.
@@ -194,7 +202,7 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
 
 ## Progres dan Log Eksperimen
 
-**Langkah berikutnya:** pelatihan model 3 kelas (Sehat, Aliran Terhambat, Tidak Dikenal) dengan validasi antar-sesi dan LOUO, pembanding metode ambang batas, kuantisasi int8, implementasi di ESP32-S3. Pengukuran RPM dengan stroboskop masih tertunda.
+**Langkah berikutnya:** uji langsung firmware `03_klasifikasi` dengan kipas (kalibrasi → Sehat → blokade → beban lain), ukur latensi, lalu skenario demo. Pengukuran RPM dengan stroboskop masih tertunda.
 
 - [x] Perakitan perangkat keras (ESP32-S3 + INA226 + kipas 12 V).
 - [x] Scan I²C: INA226 terdeteksi di **0x44**.
@@ -322,6 +330,15 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
   | **Ambang batas relatif ΔI/I_patokan + pengaman 25 %** | **99,3 %** | 98,9 % | 99,6 % | 99,5 % | — |
 
   Temuan: (1) tanpa patokan per unit, sebaran antar unit dan pergeseran antar hari (f₁ hingga ±6 %) membuat semua metode lemah; (2) arus jauh lebih stabil antar hari (≤ 1 mA) dibanding efek blokade (+3–4 mA, ≈ +5 %), sehingga patokan arus per unit sangat efektif, sedangkan patokan pada ciri kecepatan/spektrum justru merugikan; (3) **dengan patokan per unit, ambang batas relatif sederhana (99,3 %) mengungguli MLP (91,9 %)** — blokade terutama tampak sebagai kenaikan arus relatif, bukan perubahan bentuk spektrum; (4) dua kipas paralel (arus ≈ 2×) diklasifikasikan sebagai Terhambat oleh MLP sampai ditambahkan pengaman fisik |ΔI/I_patokan| > 25 % → Tidak Dikenal (batas ditetapkan dari fisika: efek blokade ≈ 5 %); ambang keyakinan *softmax* (0,6/0,8) tidak membantu; (5) unit tipe C (U09, tidak pernah dilatih) dikenali Sehat 98,9–100 % oleh MLP 16/5 ciri; (6) massa ≤ 103 mg dan bilah patah sebagian besar diprediksi Sehat, konsisten dengan hasil gerbang kelayakan.
+- [x] **20-10-2026: Model final, kuantisasi, dan firmware.** Masukan 7 ciri: riak/DC, kurtosis, *crest factor*, kerataan spektrum, lantai derau relatif, serta selisih log arus dan selisih riak/DC terhadap patokan kalibrasi. MLP 7–32–16–3; masukan dibatasi pada persentil 0,5–99,5 % (selisih arus dibatasi ±25 %) sebelum standarisasi agar resolusi int8 tidak habis oleh nilai ekstrem. Kuantisasi int8 simetris per-tensor: kesesuaian float–int8 99,99 %; ukuran model **±1 KB** (784 bobot int8 + 51 bias int32). Pengaman fisik |ΔI/I_patokan| > 25 % → Tidak Dikenal. Evaluasi pipeline int8 persis seperti firmware (`tools/evaluasi_final.py`, LOUO + antar-sesi):
+
+  | Metode | Akurasi | Recall Sehat | Recall Terhambat | Recall Tidak Dikenal | Alarm palsu Sehat |
+  |---|---|---|---|---|---|
+  | **MLP int8 (firmware)** | **95,7 %** | **100 %** | **91,5 %** | **99,8 %** | **0,0 %** |
+  | Ambang batas I_RMS absolut | 40,8 % | 89,8 % | 14,0 % | 0,4 % | 10,2 % |
+  | Ambang batas relatif ΔI/I_patokan + pengaman | 99,3 % | 98,9 % | 99,6 % | 99,5 % | 1,1 % |
+
+  Unit terlemah: U04 (69,5 %; sebagian jendela blokade diprediksi Sehat). Unit tipe C (U09, tidak pernah dilatih) dikenali Sehat 100 %. Firmware `03_klasifikasi`: jendela 768 sampel, ciri + FFT radix-2 1024 titik, MLP int8, pemungutan suara 5 jendela, kalibrasi ±10 s disimpan di NVS. Verifikasi `tools/cek_firmware.py`: selisih ciri firmware vs Python < 1·10⁻⁶; laju cuplik firmware 3030,3 SPS (median, sama dengan data latih). Model memakai kode C int8 biasa (bukan ESP-NN) karena ukurannya sangat kecil.
 - [ ] **Pergeseran kecepatan U01 sesi s2.** Rekaman 01:01 menunjukkan 309,6 Hz / 74,3 mA, sedangkan satu menit kemudian 321,8 Hz / 73,2 mA pada 12,716 V. Putaran lebih lambat disertai arus lebih tinggi mengindikasikan beban mekanis sesaat (dugaan: aliran udara terhalang oleh posisi kipas, belum dikonfirmasi). Tindak lanjut: dudukan kipas yang terstandar.
 - [ ] **Penetapan orde 1× (RPM).** Hipotesis dari spektrum U01: (a) 321 Hz = 4 komutasi/putaran → **4.816 RPM** (80,3 Hz; orde bilah 7× di 562 Hz hanya +11,6 dB), paling masuk akal untuk kipas 5010; (b) 2 komutasi/putaran → 9.633 RPM (kecil kemungkinan); (c) 6 komutasi/putaran → 3.211 RPM (tidak ada orde 2×). Perlu verifikasi stroboskop atau uji massa.
 - [ ] Uji bilah patah (validasi *pipeline* sekaligus konfirmasi orde 1×).

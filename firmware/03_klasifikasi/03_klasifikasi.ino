@@ -19,6 +19,7 @@
 #include <Wire.h>
 #include <Preferences.h>
 #include <math.h>
+#include "soc/gpio_reg.h"
 #include "model_data.h"
 
 // ---------------- Perangkat keras (sama dengan sketch 02) ----------------
@@ -85,22 +86,44 @@ void startContinuous() {
 }
 
 // Rekam satu jendela. Mengembalikan laju cuplik [Hz] atau 0 bila gagal.
+// Loop dibuat seringan mungkin: waktu baca ESP32 (2 transaksi I2C) hanya
+// ±3 us lebih cepat dari satu konversi 332 us, jadi konversi ke mA dan
+// pencatatan waktu dilakukan setelah jendela selesai.
+static int16_t rawBuf[N_WIN];
+static uint16_t dtHist[1024];                      // histogram jarak antar sampel (us)
+uint32_t lastMissed = 0;
 float captureWindow() {
-  uint32_t t_first = 0, t_last = 0;
+  uint32_t t_first = 0, t_prev = 0, missed = 0;
+  memset(dtHist, 0, sizeof(dtHist));
+  Serial.flush();                                   // jangan ada pengiriman Serial selama akuisisi
+  uint16_t dummy0; readReg(REG_MASK, dummy0);       // buang konversi yang sudah lama menunggu
   for (int i = 0; i < N_WIN; i++) {
     uint32_t start = micros();
-    while (digitalRead(PIN_ALERT) == HIGH) {
+    while (REG_READ(GPIO_IN_REG) & (1UL << PIN_ALERT)) {   // ALERT aktif-LOW (baca register langsung)
       if (micros() - start > 50000) return 0;
     }
     uint32_t t = micros();
     uint16_t raw, dummy;
     if (!readReg(REG_MASK, dummy)) return 0;        // hapus flag DULU
     if (!readReg(REG_SHUNT, raw)) return 0;
-    sig[i] = (int16_t)raw * LSB_MA;
+    rawBuf[i] = (int16_t)raw;
     if (i == 0) t_first = t;
-    t_last = t;
+    else {
+      uint32_t dt = t - t_prev;
+      dtHist[dt < 1023 ? dt : 1023]++;
+      if (dt > 498) missed++;                       // > 1,5 x 332 us
+    }
+    t_prev = t;
   }
-  return (N_WIN - 1) * 1e6f / (float)(t_last - t_first);
+  for (int i = 0; i < N_WIN; i++) sig[i] = rawBuf[i] * LSB_MA;
+  lastMissed = missed;
+  // Laju cuplik = 1 / median jarak antar sampel (sama dengan tools/capture_fft.py)
+  uint32_t half = (N_WIN - 1) / 2, cum = 0;
+  for (int d = 0; d < 1024; d++) {
+    cum += dtHist[d];
+    if (cum > half) return 1e6f / (float)d;
+  }
+  return 0;
 }
 
 // ================= FFT radix-2 (in-place) =================
@@ -262,6 +285,7 @@ void dumpJendela() {
   Ciri c = hitungCiri(fs);
   Serial.println("#RAW_BEGIN");
   Serial.printf("#fs=%.3f\n", fs);
+  Serial.printf("#missed=%lu\n", (unsigned long)lastMissed);
   for (int n = 0; n < N_WIN; n++) Serial.printf("%.4f\n", sig[n]);
   Serial.println("#RAW_END");
   Serial.printf("#CIRI log_dc=%.6f riak_dc=%.6f kurtosis=%.6f crest=%.6f flat=%.6f lantai_rel=%.6f\n",
