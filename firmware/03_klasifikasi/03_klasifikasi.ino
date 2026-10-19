@@ -5,12 +5,19 @@
  *   akuisisi INA226 (ALERT) → ciri riak + FFT 1024 → MLP int8 → kelas
  * Kelas: Sehat, Aliran Terhambat, Tidak Dikenal.
  *
- * Kalibrasi (WAJIB sekali per kipas, saat kipas terpasang dan sehat):
- *   - kirim 'k' lewat Serial Monitor (115200), ATAU
- *   - tahan tombol BOOT ±2 detik.
- *   Perangkat merekam ±10 detik dan menyimpan patokan arus & riak ke flash.
- * Perintah lain: 'r' = hapus kalibrasi, 'd' = kirim satu jendela mentah +
- *   ciri (untuk verifikasi dengan tools/cek_firmware.py).
+ * Antarmuka mandiri (opsional, tanpa laptop):
+ *   OLED SSD1306 128x64 di I2C kedua (SDA GPIO4, SCL GPIO5, 400 kHz) —
+ *   terpisah dari INA226 agar pencuplikan tidak terganggu.
+ *   Tombol KALIBRASI (GPIO1 ke GND) dan tombol MULAI (GPIO2 ke GND).
+ *   Bila OLED terdeteksi, perangkat menunggu tombol MULAI; tanpa OLED,
+ *   pembacaan langsung berjalan (mode laptop).
+ *
+ * Kalibrasi (WAJIB sekali per kipas, saat kipas terpasang, hangat, dan sehat):
+ *   tombol KALIBRASI, kirim 'k' lewat Serial Monitor (115200), atau tahan
+ *   tombol BOOT ±2 detik. Perangkat merekam ±10 detik dan menyimpan patokan
+ *   arus & riak ke flash, lalu mulai membaca.
+ * Perintah Serial lain: 'm' = mulai/berhenti membaca, 'r' = hapus kalibrasi,
+ *   'd' = kirim satu jendela mentah + ciri (verifikasi tools/cek_firmware.py).
  *
  * Model & parameter: model_data.h (dibuat tools/ekspor_model.py).
  * Pengaman fisik: |I/I_patokan − 1| > 25 % → Tidak Dikenal.
@@ -20,6 +27,8 @@
 #include <Preferences.h>
 #include <math.h>
 #include "soc/gpio_reg.h"
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 #include "model_data.h"
 
 // ---------------- Perangkat keras (sama dengan sketch 02) ----------------
@@ -27,6 +36,10 @@
 #define PIN_SCL      9
 #define PIN_ALERT    7
 #define PIN_BOOT     0
+#define PIN_BTN_KAL  1           // tombol KALIBRASI ke GND
+#define PIN_BTN_MUL  2           // tombol MULAI/BERHENTI ke GND
+#define PIN_OLED_SDA 4
+#define PIN_OLED_SCL 5
 #define INA_ADDR     0x44
 #define I2C_HZ       1000000
 #define VSHCT_CODE   2           // 332 us -> ±3030 SPS
@@ -59,6 +72,58 @@ Preferences prefs;
 bool kalibrasi_ada = false;
 float base_logdc = 0, base_riak = 0;
 int votes[N_VOTE]; int vote_n = 0, vote_i = 0;
+bool membaca = true;
+
+// ---------------- OLED & tombol ----------------
+TwoWire WireOled = TwoWire(1);
+Adafruit_SSD1306 oled(128, 64, &WireOled, -1);
+bool oled_ok = false;
+volatile bool req_kal = false, req_mul = false;
+volatile uint32_t t_kal = 0, t_mul = 0;
+
+void IRAM_ATTR isrKal() { uint32_t t = millis(); if (t - t_kal > 300) { req_kal = true; t_kal = t; } }
+void IRAM_ATTR isrMul() { uint32_t t = millis(); if (t - t_mul > 300) { req_mul = true; t_mul = t; } }
+
+void layarTeks(const char *baris1, const char *besar1, const char *besar2, const char *baris4) {
+  if (!oled_ok) return;
+  oled.clearDisplay();
+  oled.setTextColor(SSD1306_WHITE);
+  oled.setTextSize(1); oled.setCursor(0, 0); oled.print(baris1);
+  oled.drawFastHLine(0, 10, 128, SSD1306_WHITE);
+  oled.setTextSize(2);
+  oled.setCursor(0, 15); oled.print(besar1);
+  if (besar2 && besar2[0]) { oled.setCursor(0, 33); oled.print(besar2); }
+  oled.setTextSize(1); oled.setCursor(0, 55); oled.print(baris4);
+  oled.display();
+}
+
+void layarProgres(int n, int total) {
+  if (!oled_ok) return;
+  oled.clearDisplay();
+  oled.setTextSize(1); oled.setCursor(0, 0); oled.print("KALIBRASI");
+  oled.drawFastHLine(0, 10, 128, SSD1306_WHITE);
+  oled.setCursor(0, 18); oled.print("Kipas harus SEHAT");
+  oled.setCursor(0, 28); oled.print("dan sudah hangat.");
+  oled.drawRect(0, 44, 128, 12, SSD1306_WHITE);
+  oled.fillRect(2, 46, (int)(124.0f * n / total), 8, SSD1306_WHITE);
+  oled.display();
+}
+
+void layarSiap() {
+  char b4[32];
+  if (kalibrasi_ada) snprintf(b4, sizeof(b4), "Patokan %.1f mA", powf(10, base_logdc));
+  else snprintf(b4, sizeof(b4), "Tekan KALIBRASI dulu");
+  layarTeks("Pemantau Kipas DC", kalibrasi_ada ? "SIAP" : "BELUM", kalibrasi_ada ? "tekan MULAI" : "KALIBRASI", b4);
+}
+
+void layarHasil(int stabil, float dc, float dI, float yakin) {
+  if (!oled_ok) return;
+  static const char *A[3] = {"SEHAT", "ALIRAN", "TIDAK"};
+  static const char *B[3] = {"", "TERHAMBAT", "DIKENAL"};
+  char b4[32];
+  snprintf(b4, sizeof(b4), "%.1fmA %+.1f%% %d%%", dc, dI * 100, (int)(yakin * 100 + 0.5f));
+  layarTeks("Kondisi kipas:     *", A[stabil], B[stabil], b4);
+}
 
 // ================= INA226 =================
 bool readReg(uint8_t reg, uint16_t &out) {
@@ -256,8 +321,13 @@ void kalibrasi() {
   Serial.println("# KALIBRASI: pastikan kipas SEHAT terpasang. Merekam ±10 detik ...");
   int n = 0;
   while (n < N_KALIB) {
+    layarProgres(n, N_KALIB);
     float fs = captureWindow();
-    if (fs <= 0) { Serial.println("# ERROR akuisisi saat kalibrasi"); return; }
+    if (fs <= 0) {
+      Serial.println("# ERROR akuisisi saat kalibrasi");
+      layarTeks("KALIBRASI", "GAGAL", "", "Cek kabel INA226");
+      return;
+    }
     Ciri c = hitungCiri(fs);
     a[n] = c.log_dc; b[n] = c.riak_dc; n++;
   }
@@ -267,15 +337,19 @@ void kalibrasi() {
   prefs.begin("kipas", false);
   prefs.putFloat("logdc", base_logdc); prefs.putFloat("riak", base_riak); prefs.putBool("ok", true);
   prefs.end();
-  kalibrasi_ada = true; vote_n = 0;
+  kalibrasi_ada = true; vote_n = 0; membaca = true;
   Serial.printf("# KALIBRASI SELESAI: arus patokan %.2f mA, riak/DC patokan %.4f\n",
                 powf(10, base_logdc), base_riak);
+  char b4[32]; snprintf(b4, sizeof(b4), "Patokan %.1f mA", powf(10, base_logdc));
+  layarTeks("KALIBRASI", "SELESAI", "", b4);
+  delay(1200);
 }
 
 void hapusKalibrasi() {
   prefs.begin("kipas", false); prefs.clear(); prefs.end();
-  kalibrasi_ada = false; vote_n = 0;
+  kalibrasi_ada = false; vote_n = 0; membaca = !oled_ok;
   Serial.println("# Kalibrasi dihapus.");
+  layarSiap();
 }
 
 // ================= Mode debug untuk verifikasi =================
@@ -309,7 +383,25 @@ void setup() {
   fftInit();
   startContinuous();
   muatKalibrasi();
+
+  pinMode(PIN_BTN_KAL, INPUT_PULLUP);
+  pinMode(PIN_BTN_MUL, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(PIN_BTN_KAL), isrKal, FALLING);
+  attachInterrupt(digitalPinToInterrupt(PIN_BTN_MUL), isrMul, FALLING);
+  WireOled.begin(PIN_OLED_SDA, PIN_OLED_SCL, 400000);
+  // Pustaka SSD1306 tidak memeriksa ACK, jadi alamat layar diperiksa langsung.
+  uint8_t oled_addr = 0;
+  for (uint8_t a : {0x3C, 0x3D}) {
+    WireOled.beginTransmission(a);
+    if (WireOled.endTransmission() == 0) { oled_addr = a; break; }
+  }
+  oled_ok = oled_addr && oled.begin(SSD1306_SWITCHCAPVCC, oled_addr);
+  membaca = !oled_ok;                     // dengan OLED: tunggu tombol MULAI
+  layarSiap();
+
   Serial.println("# Klasifikasi kondisi kipas — edge AI (MLP int8, 3 kelas)");
+  Serial.printf("# OLED: %s. Pembacaan %s.\n", oled_ok ? "terdeteksi" : "tidak ada",
+                membaca ? "langsung berjalan" : "menunggu tombol MULAI / perintah 'm'");
   if (kalibrasi_ada)
     Serial.printf("# Kalibrasi tersimpan: arus patokan %.2f mA\n", powf(10, base_logdc));
   else
@@ -322,12 +414,21 @@ void loop() {
     if (ch == 'k' || ch == 'K') kalibrasi();
     else if (ch == 'r' || ch == 'R') hapusKalibrasi();
     else if (ch == 'd' || ch == 'D') dumpJendela();
+    else if (ch == 'm' || ch == 'M') req_mul = true;
+  }
+  if (req_kal) { req_kal = false; kalibrasi(); }
+  if (req_mul) {
+    req_mul = false;
+    membaca = !membaca; vote_n = 0;
+    Serial.printf("# Pembacaan %s\n", membaca ? "DIMULAI" : "DIHENTIKAN");
+    if (!membaca || !kalibrasi_ada) layarSiap();
   }
   if (digitalRead(PIN_BOOT) == LOW) {
     uint32_t t = millis();
     while (digitalRead(PIN_BOOT) == LOW && millis() - t < 2000) delay(10);
     if (millis() - t >= 2000) kalibrasi();
   }
+  if (!membaca) { delay(20); return; }
 
   float fs = captureWindow();
   if (fs <= 0) { Serial.println("# ERROR akuisisi (cek kabel ALERT/I2C)"); startContinuous(); delay(200); return; }
@@ -337,6 +438,7 @@ void loop() {
 
   if (!kalibrasi_ada) {
     Serial.printf("I=%6.2f mA  | BELUM DIKALIBRASI (kirim 'k')\n", c.dc);
+    layarSiap();
     return;
   }
   float in[MODEL_N_IN] = {c.riak_dc, c.kurtosis, c.crest, c.flat, c.lantai_rel,
@@ -359,4 +461,5 @@ void loop() {
   Serial.printf("I=%6.2f mA  dI=%+5.1f%%  P=[%.2f %.2f %.2f]  jendela: %-16s | KONDISI: %-16s (%d/%d)  ciri %lu us, inferensi %lu us\n",
                 c.dc, dI * 100, pr[0], pr[1], pr[2], KELAS[kls], KELAS[stabil], cnt[stabil], vote_n,
                 (unsigned long)(t1 - t0), (unsigned long)(t2 - t1));
+  layarHasil(stabil, c.dc, dI, pr[stabil]);
 }

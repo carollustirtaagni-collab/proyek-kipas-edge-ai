@@ -15,6 +15,7 @@
 | Karton juring 50 % | Untuk blokade di sisi tiup |
 | LED strip pendek (±71 mA) | Beban non-kipas |
 | Laptop + kabel USB | Serial Monitor 115200 baud, port UART (CH343) |
+| OLED SSD1306 + tombol KALIBRASI & MULAI (opsional) | Bila terpasang, demo dapat dijalankan tanpa laptop: tombol KALIBRASI menggantikan perintah `k`, tombol MULAI memulai/menghentikan pembacaan. *Belum diuji dengan perangkat fisik.* |
 | Cadangan: kabel USB kedua, selotip, *cable tie* | |
 | Lembar ringkasan hasil (bagian 5) | Dicetak atau ditampilkan di layar |
 

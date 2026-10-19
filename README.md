@@ -112,6 +112,20 @@ GPIO7 ────────────  ALERT    (open-drain, INPUT_PULLUP)
            └── GND ESP32   (ground bersama WAJIB)
 ```
 
+**Antarmuka mandiri (firmware `03_klasifikasi`, opsional):**
+
+```
+OLED SSD1306 128x64 (I²C kedua, 400 kHz)     ESP32-S3
+  VCC ───────────────────────────────────  3V3
+  GND ───────────────────────────────────  GND
+  SDA ───────────────────────────────────  GPIO4
+  SCL ───────────────────────────────────  GPIO5
+Tombol KALIBRASI:  GPIO1 ── tombol ── GND   (pull-up internal)
+Tombol MULAI:      GPIO2 ── tombol ── GND   (pull-up internal)
+```
+
+OLED sengaja dipasang pada bus I²C terpisah agar transfer layar tidak mengganggu pembacaan INA226 pada 1 MHz. Bila OLED terdeteksi saat menyala, perangkat menunggu tombol MULAI; tanpa OLED, pembacaan langsung berjalan dan hasil dikirim lewat Serial (115200 baud).
+
 Kapasitor elektrolit 1000 µF dipasang pada keluaran catu daya, **sebelum *shunt***. Kapasitor besar tidak boleh dipasang paralel dengan kipas setelah *shunt*, karena riak arus akan mengalir lewat kapasitor, bukan lewat *shunt*.
 
 ---
@@ -202,7 +216,7 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
 
 ## Progres dan Log Eksperimen
 
-**Langkah berikutnya:** gladi demo sesuai [`docs/skenario-demo.md`](docs/skenario-demo.md) (babak 1–4 sudah diuji 20-10-2026); penulisan Proposal Revisi 3 / laporan. Opsional: uji beban non-kipas dengan kenaikan arus di rentang blokade (+2–7 %) untuk membandingkan AI dan ambang relatif. Pengukuran RPM dengan stroboskop masih tertunda.
+**Langkah berikutnya:** rakit OLED + 2 tombol dan uji firmware antarmuka mandiri; gladi demo sesuai [`docs/skenario-demo.md`](docs/skenario-demo.md) (babak 1–4 sudah diuji 20-10-2026); penulisan Proposal Revisi 3 / laporan. Opsional: uji beban non-kipas dengan kenaikan arus di rentang blokade (+2–7 %) untuk membandingkan AI dan ambang relatif. Pengukuran RPM dengan stroboskop masih tertunda.
 
 - [x] Perakitan perangkat keras (ESP32-S3 + INA226 + kipas 12 V).
 - [x] Scan I²C: INA226 terdeteksi di **0x44**.
@@ -360,6 +374,7 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
   | U02 + blokade 50 %, setelah ±1 menit | U02 | +2,7 % | **Terhambat 104/105** (keyakinan 0,80–0,87) |
 
   Temuan: tanpa kalibrasi, kipas berbeda tipe dikenali sebagai beban yang tidak dikenal (bukan dipaksa Sehat/Terhambat), sedangkan setelah kalibrasi diklasifikasikan benar. Efek blokade pada U02 lebih kecil (+2,7 %) dan butuh ±1 menit untuk stabil.
+- [x] **20-10-2026: Firmware antarmuka mandiri.** `03_klasifikasi` ditambah OLED SSD1306 (I²C kedua, GPIO4/5, 400 kHz), tombol KALIBRASI (GPIO1) dan MULAI (GPIO2) berbasis interupsi, layar *progress* kalibrasi, dan tampilan kondisi (huruf besar) + arus, ΔI, keyakinan. Keberadaan OLED diperiksa langsung lewat ACK alamat 0x3C/0x3D (pustaka SSD1306 tidak memeriksanya). Verifikasi ulang tanpa OLED: laju cuplik 3030,3 SPS, selisih ciri < 2·10⁻⁶, dan **probabilitas keluaran firmware identik dengan simulasi Python** (mis. 0,051 / 0,945 / 0,004). Uji dengan OLED dan tombol fisik belum dilakukan.
 - [ ] **Pergeseran kecepatan U01 sesi s2.** Rekaman 01:01 menunjukkan 309,6 Hz / 74,3 mA, sedangkan satu menit kemudian 321,8 Hz / 73,2 mA pada 12,716 V. Putaran lebih lambat disertai arus lebih tinggi mengindikasikan beban mekanis sesaat (dugaan: aliran udara terhalang oleh posisi kipas, belum dikonfirmasi). Tindak lanjut: dudukan kipas yang terstandar.
 - [ ] **Penetapan orde 1× (RPM).** Hipotesis dari spektrum U01: (a) 321 Hz = 4 komutasi/putaran → **4.816 RPM** (80,3 Hz; orde bilah 7× di 562 Hz hanya +11,6 dB), paling masuk akal untuk kipas 5010; (b) 2 komutasi/putaran → 9.633 RPM (kecil kemungkinan); (c) 6 komutasi/putaran → 3.211 RPM (tidak ada orde 2×). Perlu verifikasi stroboskop atau uji massa.
 - [ ] Uji bilah patah (validasi *pipeline* sekaligus konfirmasi orde 1×).
