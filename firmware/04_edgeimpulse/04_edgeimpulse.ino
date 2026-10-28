@@ -68,7 +68,12 @@ void layarTeks(const char *baris1, const char *besar1, const char *besar2, const
   oled.display();
 }
 
-void layarSiap() { layarTeks("Pemantau Kipas DC", "SIAP", "tekan MULAI", "Model Edge Impulse"); }
+void layarSiap() {
+  layarTeks("Pemantau Kipas DC", "SIAP", "", "Model Edge Impulse");
+  if (!oled_ok) return;
+  oled.setTextSize(1); oled.setCursor(0, 36); oled.print("tekan MULAI");   // ukuran kecil
+  oled.display();
+}
 
 void layarHasil(int stabil, float dc, float yakin) {
   static const char *A[3] = {"SEHAT", "ALIRAN", "TIDAK"};
