@@ -387,6 +387,8 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
   | **2: FFT 256** | **int8** | **99,98 %** | **100 %** | **100 %** | 99,8 % | **0 %** |
 
   Versi 1 (validasi U07 98,8 %, uji U10 ±91 %) menunjukkan model dengan spektrum resolusi tinggi menghafal ciri khas unit latih. Spektrum yang lebih kasar (FFT 256) menghilangkan efek tersebut. Catatan: pemisahan Sehat/Terhambat pada lingkup ini terutama berasal dari level arus (kedua kipas berarus Sehat hampir sama); pola riak diperlukan untuk membedakan beban non-kipas berarus setara (LED pendek).
+
+  Performa di perangkat versi 2 (estimasi Edge Impulse, ESP32 240 MHz, int8): **EON Compiler** — inferensi 1 ms, RAM puncak 1,5 KB, flash 19,1 KB; TensorFlow Lite Micro — 1 ms, 3,2 KB, 38,9 KB. Dipilih EON (memenuhi target ukuran model < 25 KB).
 - [ ] **Pergeseran kecepatan U01 sesi s2.** Rekaman 01:01 menunjukkan 309,6 Hz / 74,3 mA, sedangkan satu menit kemudian 321,8 Hz / 73,2 mA pada 12,716 V. Putaran lebih lambat disertai arus lebih tinggi mengindikasikan beban mekanis sesaat (dugaan: aliran udara terhalang oleh posisi kipas, belum dikonfirmasi). Tindak lanjut: dudukan kipas yang terstandar.
 - [ ] **Penetapan orde 1× (RPM).** Hipotesis dari spektrum U01: (a) 321 Hz = 4 komutasi/putaran → **4.816 RPM** (80,3 Hz; orde bilah 7× di 562 Hz hanya +11,6 dB), paling masuk akal untuk kipas 5010; (b) 2 komutasi/putaran → 9.633 RPM (kecil kemungkinan); (c) 6 komutasi/putaran → 3.211 RPM (tidak ada orde 2×). Perlu verifikasi stroboskop atau uji massa.
 - [ ] Uji bilah patah (validasi *pipeline* sekaligus konfirmasi orde 1×).
