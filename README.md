@@ -124,6 +124,8 @@ Tombol KALIBRASI:  GPIO1 ── tombol ── GND   (pull-up internal)
 Tombol MULAI:      GPIO2 ── tombol ── GND   (pull-up internal)
 ```
 
+Firmware `04_edgeimpulse` hanya memakai OLED dan **tombol MULAI (GPIO2)**; tombol KALIBRASI (GPIO1) hanya diperlukan oleh firmware `03_klasifikasi`.
+
 OLED sengaja dipasang pada bus I²C terpisah agar transfer layar tidak mengganggu pembacaan INA226 pada 1 MHz. Bila OLED terdeteksi saat menyala, perangkat menunggu tombol MULAI; tanpa OLED, pembacaan langsung berjalan dan hasil dikirim lewat Serial (115200 baud).
 
 Kapasitor elektrolit 1000 µF dipasang pada keluaran catu daya, **sebelum *shunt***. Kapasitor besar tidak boleh dipasang paralel dengan kipas setelah *shunt*, karena riak arus akan mengalir lewat kapasitor, bukan lewat *shunt*.
