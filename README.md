@@ -137,6 +137,7 @@ firmware/00_diagnosa_i2c/    Scan I²C 100 kHz & 400 kHz + pembacaan ID di tiap 
 firmware/01_ina226_cek/      Verifikasi ID chip + pembacaan arus lambat (AVG=16, 115200 baud)
 firmware/02_ina226_capture/  Akuisisi burst 8192 sampel via ALERT, keluaran CSV (921600 baud, perintah 'c')
 firmware/03_klasifikasi/     Klasifikasi di perangkat: ciri + FFT 1024 + MLP int8 (model_data.h), kalibrasi per kipas ('k' / tombol BOOT)
+firmware/04_edgeimpulse/     Klasifikasi dengan model Edge Impulse (Spectral FFT 256 + Flatten + NN int8 EON), pustaka .zip di folder yang sama; tanpa kalibrasi
 tools/capture_fft.py         Rekam dari serial → CSV di data/ → plot domain waktu + FFT; --compare untuk overlay
 tools/serial_log.py          Pembacaan serial selama N detik (non-interaktif)
 docs/                        Proposal Rev. 2, ringkasan keputusan terdahulu, laporan analisis, foto komponen
