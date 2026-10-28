@@ -220,7 +220,7 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
 
 ## Progres dan Log Eksperimen
 
-**Langkah berikutnya:** rakit OLED + 2 tombol dan uji firmware antarmuka mandiri; gladi demo sesuai [`docs/skenario-demo.md`](docs/skenario-demo.md) (babak 1–4 sudah diuji 20-10-2026); penulisan Proposal Revisi 3 / laporan. Opsional: uji beban non-kipas dengan kenaikan arus di rentang blokade (+2–7 %) untuk membandingkan AI dan ambang relatif. Pengukuran RPM dengan stroboskop masih tertunda.
+**Langkah berikutnya:** uji ulang singkat Sehat/Terhambat U07 pada PCB (firmware `04_edgeimpulse`); gladi demo sesuai [`docs/skenario-demo.md`](docs/skenario-demo.md) (babak 1–4 sudah diuji 20-10-2026); penulisan Proposal Revisi 3 / laporan. Opsional: uji beban non-kipas dengan kenaikan arus di rentang blokade (+2–7 %) untuk membandingkan AI dan ambang relatif. Pengukuran RPM dengan stroboskop masih tertunda.
 
 - [x] Perakitan perangkat keras (ESP32-S3 + INA226 + kipas 12 V).
 - [x] Scan I²C: INA226 terdeteksi di **0x44**.
@@ -392,6 +392,17 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
   Versi 1 (validasi U07 98,8 %, uji U10 ±91 %) menunjukkan model dengan spektrum resolusi tinggi menghafal ciri khas unit latih. Spektrum yang lebih kasar (FFT 256) menghilangkan efek tersebut. Catatan: pemisahan Sehat/Terhambat pada lingkup ini terutama berasal dari level arus (kedua kipas berarus Sehat hampir sama); pola riak diperlukan untuk membedakan beban non-kipas berarus setara (LED pendek).
 
   Performa di perangkat versi 2 (estimasi Edge Impulse, ESP32 240 MHz, int8): **EON Compiler** — inferensi 1 ms, RAM puncak 1,5 KB, flash 19,1 KB; TensorFlow Lite Micro — 1 ms, 3,2 KB, 38,9 KB. Dipilih EON (memenuhi target ukuran model < 25 KB).
+- [x] **29-10-2026: Uji langsung firmware `04_edgeimpulse`** (pustaka Edge Impulse versi 2, EON int8; pemungutan suara 5 jendela, jendela dengan keyakinan < 0,6 tidak ikut). Uji pada U07 dilakukan di *breadboard*; uji LED pendek dilakukan setelah perangkat dipindah ke PCB (OLED + tombol MULAI).
+
+  | Kondisi | Arus (mA) | Hasil |
+  |---|---|---|
+  | Tanpa beban | −0,08 | Tidak Dikenal (keyakinan 1,00) |
+  | U07 Sehat, setelah hangat | 64,3 → 63,9 | Sehat 213/213 jendela |
+  | U07 + blokade 50 % sisi tiup | 66,5 → 67,3 | Terhambat 100 % setelah pemungutan suara (keyakinan ≥ 0,99) |
+  | Karton dilepas | 64,5 → 63,6 | Sehat 284/284 jendela setelah ±40 s |
+  | LED strip pendek (PCB) | — | Tidak Dikenal (keyakinan 100 %) |
+
+  Latensi terukur di ESP32-S3: DSP ±3 ms, NN < 1 ms, total ±3,9 ms per jendela; *end-to-end* ≈ 253 ms (jendela) + 4 ms ≈ **257 ms** (target < 300 ms); laju cuplik 3030,3 Hz. Catatan: model ini sangat bergantung pada level arus absolut. U07 yang belum stabil (arus awal ±69 mA) terbaca Terhambat hingga arus turun di bawah ±65 mA, sehingga untuk demo kipas perlu dipanaskan 8–10 menit dan pembacaan dimulai saat arus ≤ 64,5 mA dan stabil. Modul INA226 yang sama wajib dipakai karena skala arus memengaruhi hasil.
 - [ ] **Pergeseran kecepatan U01 sesi s2.** Rekaman 01:01 menunjukkan 309,6 Hz / 74,3 mA, sedangkan satu menit kemudian 321,8 Hz / 73,2 mA pada 12,716 V. Putaran lebih lambat disertai arus lebih tinggi mengindikasikan beban mekanis sesaat (dugaan: aliran udara terhalang oleh posisi kipas, belum dikonfirmasi). Tindak lanjut: dudukan kipas yang terstandar.
 - [ ] **Penetapan orde 1× (RPM).** Hipotesis dari spektrum U01: (a) 321 Hz = 4 komutasi/putaran → **4.816 RPM** (80,3 Hz; orde bilah 7× di 562 Hz hanya +11,6 dB), paling masuk akal untuk kipas 5010; (b) 2 komutasi/putaran → 9.633 RPM (kecil kemungkinan); (c) 6 komutasi/putaran → 3.211 RPM (tidak ada orde 2×). Perlu verifikasi stroboskop atau uji massa.
 - [ ] Uji bilah patah (validasi *pipeline* sekaligus konfirmasi orde 1×).
