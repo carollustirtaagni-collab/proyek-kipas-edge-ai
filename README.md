@@ -148,6 +148,7 @@ tools/latih_model.py         Eksperimen model: LOUO, antar-sesi, pembanding amba
 tools/ekspor_model.py        Model final + kuantisasi int8 → firmware/03_klasifikasi/model_data.h
 tools/evaluasi_final.py      Evaluasi pipeline firmware (int8) dengan LOUO + antar-sesi
 tools/cek_firmware.py        Verifikasi kesetaraan ciri & keluaran model firmware vs Python
+tools/ekspor_edgeimpulse.py  Ekspor rekaman U07/U10 + Tidak Dikenal ke CSV Edge Impulse (data/edgeimpulse/)
 data/                        Rekaman CSV + grafik PNG
 ```
 
@@ -375,6 +376,7 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
 
   Temuan: tanpa kalibrasi, kipas berbeda tipe dikenali sebagai beban yang tidak dikenal (bukan dipaksa Sehat/Terhambat), sedangkan setelah kalibrasi diklasifikasikan benar. Efek blokade pada U02 lebih kecil (+2,7 %) dan butuh ±1 menit untuk stabil.
 - [x] **20-10-2026: Firmware antarmuka mandiri.** `03_klasifikasi` ditambah OLED SSD1306 (I²C kedua, GPIO4/5, 400 kHz), tombol KALIBRASI (GPIO1) dan MULAI (GPIO2) berbasis interupsi, layar *progress* kalibrasi, dan tampilan kondisi (huruf besar) + arus, ΔI, keyakinan. Keberadaan OLED diperiksa langsung lewat ACK alamat 0x3C/0x3D (pustaka SSD1306 tidak memeriksanya). Verifikasi ulang tanpa OLED: laju cuplik 3030,3 SPS, selisih ciri < 2·10⁻⁶, dan **probabilitas keluaran firmware identik dengan simulasi Python** (mis. 0,051 / 0,945 / 0,004). Uji dengan OLED dan tombol fisik belum dilakukan.
+- [~] **28-10-2026: Versi Edge Impulse (arahan dosen: seluruh proses pelatihan memakai Edge Impulse).** Lingkup dipersempit ke dua kipas tipe B dengan arus Sehat hampir sama (**U07, U10**), tanpa kalibrasi per unit. Kelas: sehat (s4 maks. 50 + s5 per unit), terhambat (blokade 50/75 %), tidak_dikenal (tanpa beban, LED strip, LED strip pendek). Ekspor dengan `tools/ekspor_edgeimpulse.py` (filter kestabilan sama dengan `dataset.py`; satu rekaman 8192 sampel = satu sampel Edge Impulse, 3030 Hz). Pembagian uji: latih U07 → uji U10 (tidak_dikenal: 30 % rekaman terakhir tiap kondisi). Rentang arus per rekaman: sehat 62,4–64,6 mA, terhambat 65,9–67,1 mA, LED pendek 71,4–71,9 mA dengan riak ±0,05 mA (kipas ±15–17 mA). Model 10 unit dengan kalibrasi (95,7 %) dipertahankan sebagai pembanding.
 - [ ] **Pergeseran kecepatan U01 sesi s2.** Rekaman 01:01 menunjukkan 309,6 Hz / 74,3 mA, sedangkan satu menit kemudian 321,8 Hz / 73,2 mA pada 12,716 V. Putaran lebih lambat disertai arus lebih tinggi mengindikasikan beban mekanis sesaat (dugaan: aliran udara terhalang oleh posisi kipas, belum dikonfirmasi). Tindak lanjut: dudukan kipas yang terstandar.
 - [ ] **Penetapan orde 1× (RPM).** Hipotesis dari spektrum U01: (a) 321 Hz = 4 komutasi/putaran → **4.816 RPM** (80,3 Hz; orde bilah 7× di 562 Hz hanya +11,6 dB), paling masuk akal untuk kipas 5010; (b) 2 komutasi/putaran → 9.633 RPM (kecil kemungkinan); (c) 6 komutasi/putaran → 3.211 RPM (tidak ada orde 2×). Perlu verifikasi stroboskop atau uji massa.
 - [ ] Uji bilah patah (validasi *pipeline* sekaligus konfirmasi orde 1×).
