@@ -41,10 +41,12 @@
 #define N_WIN        EI_CLASSIFIER_RAW_SAMPLE_COUNT
 #define N_VOTE       5
 #define MIN_YAKIN    0.6f
+#define TUNGGU_MS    20000       // layar tunggu setelah MULAI (kipas stabil dulu)
 
 static float sig[N_WIN];
 int votes[N_VOTE]; int vote_n = 0, vote_i = 0;
 bool membaca = true;
+uint32_t t_mulai = 0;
 
 // ---------------- OLED & tombol ----------------
 TwoWire WireOled = TwoWire(1);
@@ -72,6 +74,22 @@ void layarSiap() {
   layarTeks("Pemantau Kipas DC", "SIAP", "", "Model Edge Impulse");
   if (!oled_ok) return;
   oled.setTextSize(1); oled.setCursor(0, 36); oled.print("tekan MULAI");   // ukuran kecil
+  oled.display();
+}
+
+void layarTunggu(uint32_t lewat, float dc) {
+  if (!oled_ok) return;
+  char b[24];
+  oled.clearDisplay();
+  oled.setTextColor(SSD1306_WHITE);
+  oled.setTextSize(1); oled.setCursor(0, 0); oled.print("Menunggu kipas stabil");
+  oled.drawFastHLine(0, 10, 128, SSD1306_WHITE);
+  snprintf(b, sizeof(b), "%lu s", (unsigned long)((TUNGGU_MS - lewat + 999) / 1000));
+  oled.setTextSize(2); oled.setCursor(0, 15); oled.print(b);
+  oled.drawRect(0, 36, 128, 10, SSD1306_WHITE);
+  oled.fillRect(2, 38, (int)(124UL * lewat / TUNGGU_MS), 6, SSD1306_WHITE);
+  snprintf(b, sizeof(b), "%.1f mA", dc);
+  oled.setTextSize(1); oled.setCursor(0, 55); oled.print(b);
   oled.display();
 }
 
@@ -180,7 +198,7 @@ void loop() {
   }
   if (req_mul) {
     req_mul = false;
-    membaca = !membaca; vote_n = 0;
+    membaca = !membaca; vote_n = 0; t_mulai = millis();
     Serial.printf("# Pembacaan %s\n", membaca ? "DIMULAI" : "DIHENTIKAN");
     if (!membaca) layarSiap();
   }
@@ -191,6 +209,12 @@ void loop() {
   double s = 0;
   for (int n = 0; n < N_WIN; n++) s += sig[n];
   float dc = s / N_WIN;
+  uint32_t lewat = millis() - t_mulai;
+  if (lewat < TUNGGU_MS) {                  // belum diklasifikasi, hanya tampilkan arus
+    Serial.printf("# menunggu kipas stabil (%lu s)  I=%6.2f mA\n", (unsigned long)(lewat / 1000), dc);
+    layarTunggu(lewat, dc);
+    return;
+  }
 
   signal_t signal;
   signal.total_length = N_WIN;
