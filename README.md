@@ -215,6 +215,7 @@ robocopy data "G:\My Drive\proyek-kipas-edge-ai-data" *.csv /S /XO
 | Konversi terlewat > 0 | I²C tidak sempat → naikkan `I2C_HZ` atau perbesar `VSHCT_CODE` |
 | Python: "Tidak menerima data" | Serial Monitor masih terbuka atau port salah |
 | Unggah gagal | Tahan BOOT, tekan RESET, lepas BOOT, unggah ulang |
+| ESP32 tidak menyala dari PSU, tetapi menyala dari USB | Periksa kapasitor 1000 µF di keluaran 5 V *step-down* Mini-360. 31-10-2026: kapasitor 1000 µF/50 V diganti 1000 µF/16 V, dan perangkat kembali menyala. Penyebab pasti belum diketahui (kemungkinan kapasitor lama cacat atau sambungan solder); bila terulang, coba kapasitor keluaran yang lebih kecil (100–470 µF) |
 
 ---
 
