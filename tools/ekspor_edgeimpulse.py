@@ -6,7 +6,8 @@ Lingkup versi Edge Impulse: 2 kipas tipe B dengan arus Sehat hampir sama
 (U07, U10), 3 kelas:
   sehat          sehat_u07/u10  sesi s4 + s5
   terhambat      blok50_*, blok75_*  (U07, U10)
-  tidak_dikenal  unknown-tanpabeban, unknown-led, unknown-ledpendek
+  tidak_dikenal  unknown-tanpabeban, unknown-led, unknown-ledpendek,
+                 unknown-2kipas (dua kipas paralel, U02 + U11)
 
 Satu rekaman (8192 sampel ≈ 2,7 s) = satu sampel Edge Impulse; pemotongan
 jendela dilakukan di Edge Impulse (Create impulse). Kolom: timestamp (ms),
@@ -40,7 +41,7 @@ from capture_fft import load_csv  # noqa: E402
 from dataset import parse_name, LSB_MA, STABIL_MA  # noqa: E402
 
 UNIT = ("u07", "u10")
-UNKNOWN = ("unknown-tanpabeban", "unknown-led", "unknown-ledpendek")
+UNKNOWN = ("unknown-tanpabeban", "unknown-led", "unknown-ledpendek", "unknown-2kipas")
 PORSI_UJI_UNKNOWN = 0.3
 
 
